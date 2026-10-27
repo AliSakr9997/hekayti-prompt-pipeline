@@ -1,0 +1,813 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Hekayti Illustration Lab</title>
+  <style>
+    :root {
+      --ink: #172033;
+      --muted: #6c7890;
+      --line: #e6eaf2;
+      --panel: #ffffff;
+      --soft: #f5f7fb;
+      --purple: #6556d7;
+      --purple-dark: #4f42b8;
+      --green: #16845b;
+      --amber: #c77918;
+      --shadow: 0 16px 40px rgba(42, 51, 89, .08);
+    }
+
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      color: var(--ink);
+      background: #f7f8fc;
+      font: 14px/1.45 Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
+    button, input, select, textarea { font: inherit; }
+    button { cursor: pointer; }
+    .app { min-height: 100vh; display: grid; grid-template-columns: 250px 1fr; }
+    .sidebar { padding: 26px 18px; color: #dfe3ff; background: #191936; }
+    .brand { display: flex; gap: 11px; align-items: center; margin: 0 10px 42px; color: #fff; font-size: 20px; font-weight: 750; }
+    .brand-mark { display: grid; place-items: center; width: 34px; height: 34px; border-radius: 11px; background: #7669ed; color: #fff; }
+    .nav-label { margin: 0 12px 10px; color: #8f92b5; font-size: 11px; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; }
+    .nav-item { display: flex; gap: 11px; align-items: center; margin: 4px 0; padding: 11px 12px; border-radius: 11px; color: #b9bddc; }
+    .nav-item.active { color: #fff; background: #312f61; }
+    .sidebar-tip { margin: 35px 8px 0; padding: 16px; border: 1px solid #37365e; border-radius: 14px; background: #24234a; color: #bfc2de; font-size: 12px; }
+    .sidebar-tip strong { display: block; margin-bottom: 5px; color: #fff; }
+    main { min-width: 0; padding: 28px 34px 42px; }
+    .topbar { display: flex; align-items: flex-start; justify-content: space-between; gap: 18px; margin-bottom: 24px; }
+    h1, h2, h3, p { margin-top: 0; }
+    h1 { margin-bottom: 6px; font-size: 27px; letter-spacing: -.03em; }
+    .subtitle { margin: 0; color: var(--muted); }
+    .top-actions { display: flex; gap: 10px; }
+    .btn { border: 1px solid var(--line); border-radius: 9px; padding: 10px 14px; color: var(--ink); background: var(--panel); font-weight: 650; }
+    .btn.primary { border-color: var(--purple); color: #fff; background: var(--purple); }
+    .btn.primary:hover { background: var(--purple-dark); }
+    .layout { display: grid; grid-template-columns: minmax(0, 1.5fr) minmax(300px, .85fr); gap: 20px; }
+    .stack { display: flex; flex-direction: column; gap: 20px; }
+    .flow-card { order: 1; }
+    .developer-card { order: 10; }
+    .flow-progress { display: grid; grid-template-columns: repeat(5, 1fr); gap: 8px; margin: 0 0 20px; }
+    .flow-step { width: 100%; padding: 10px 8px; border: 1px solid var(--line); border-radius: 10px; color: var(--muted); background: var(--panel); font-size: 11px; font-weight: 700; text-align: center; cursor: pointer; }
+    .flow-step strong { display: block; margin-bottom: 2px; color: var(--purple); font-size: 13px; }
+    .flow-step.active { border-color: #a49cf1; background: #faf9ff; }
+    .journey-note { margin: -8px 0 20px; padding: 12px 15px; border: 1px solid #ddd9ff; border-radius: 11px; color: #51489c; background: #f5f3ff; }
+    .review-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px 18px; }
+    .review-item { padding-bottom: 8px; border-bottom: 1px solid var(--line); }
+    .review-item span { display: block; color: var(--muted); font-size: 11px; }
+    .review-item strong { display: block; margin-top: 2px; font-size: 13px; word-break: break-word; }
+    .card { border: 1px solid var(--line); border-radius: 15px; padding: 20px; background: var(--panel); box-shadow: var(--shadow); }
+    .card-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 17px; }
+    .card h2 { margin: 0; font-size: 16px; }
+    .small { color: var(--muted); font-size: 12px; }
+    .badge { display: inline-flex; align-items: center; border-radius: 99px; padding: 5px 9px; color: var(--green); background: #e9f7f0; font-size: 12px; font-weight: 700; }
+    .badge.amber { color: var(--amber); background: #fff4df; }
+    .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+    label { display: block; color: #4b5770; font-size: 12px; font-weight: 700; }
+    input, select, textarea { width: 100%; margin-top: 6px; border: 1px solid var(--line); border-radius: 8px; padding: 10px 11px; outline: 0; color: var(--ink); background: #fbfcff; }
+    textarea { min-height: 92px; resize: vertical; }
+    input:focus, select:focus, textarea:focus { border-color: #a39bef; box-shadow: 0 0 0 3px #eeeaff; }
+    .full { grid-column: 1 / -1; }
+    .upload { display: flex; gap: 14px; align-items: center; padding: 13px; border: 1px dashed #cdd2e1; border-radius: 10px; background: var(--soft); }
+    .avatar { display: grid; place-items: center; width: 52px; height: 52px; border-radius: 13px; color: #5a4dca; background: #e7e3ff; font-size: 21px; font-weight: 800; }
+    .upload strong { display: block; margin-bottom: 2px; }
+    .upload input { margin: 5px 0 0; padding: 0; border: 0; background: transparent; }
+    .strategy-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+    .strategy { position: relative; padding: 13px; border: 1px solid var(--line); border-radius: 11px; background: #fff; text-align: left; }
+    .strategy.selected { border-color: var(--purple); box-shadow: 0 0 0 2px #e5e1ff; }
+    .strategy b { display: block; margin-bottom: 4px; }
+    .strategy span { color: var(--muted); font-size: 11px; }
+    .strategy-dot { position: absolute; top: 12px; right: 12px; width: 9px; height: 9px; border: 2px solid #bec3d3; border-radius: 50%; }
+    .strategy.selected .strategy-dot { border-color: var(--purple); background: var(--purple); }
+    .model-picker { display: grid; grid-template-columns: minmax(0, 1fr) 1fr; gap: 14px; align-items: end; }
+    .quota-list { display: grid; gap: 6px; max-height: 110px; overflow: auto; }
+    .quota-row { display: flex; justify-content: space-between; gap: 12px; color: var(--muted); font-size: 11px; }
+    .quota-row strong { color: var(--ink); }
+    .scene-list { display: grid; gap: 8px; }
+    .scene-row { display: grid; grid-template-columns: 30px 1fr auto; gap: 10px; align-items: center; padding: 11px; border: 1px solid var(--line); border-radius: 10px; }
+    .scene-row.active { border-color: #a49cf1; background: #faf9ff; }
+    .scene-number { display: grid; place-items: center; width: 27px; height: 27px; border-radius: 8px; color: #5f52cb; background: #eceaff; font-size: 12px; font-weight: 800; }
+    .scene-row strong { display: block; font-size: 13px; }
+    .scene-row span { color: var(--muted); font-size: 12px; }
+    .check { color: var(--green); font-size: 17px; }
+    .preview { min-height: 290px; display: grid; place-items: center; overflow: hidden; border-radius: 12px; background: linear-gradient(135deg, #b9d9fb, #f9d8bb 48%, #b9e7cd); }
+    .preview img { display: none; width: 100%; height: 100%; min-height: 290px; object-fit: cover; }
+    .preview.has-image img { display: block; }
+    .preview.has-image .preview-art { display: none; }
+    .preview-art { position: relative; width: 80%; height: 220px; border-radius: 50% 50% 12px 12px; background: linear-gradient(#8dc8f0 0 47%, #87c886 47%); box-shadow: 0 18px 22px rgba(26, 72, 65, .15); }
+    .sun { position: absolute; top: 18px; right: 26px; width: 42px; height: 42px; border-radius: 50%; background: #ffd779; box-shadow: 0 0 0 11px rgba(255, 215, 121, .25); }
+    .character { position: absolute; bottom: 25px; left: 31%; width: 84px; height: 130px; border-radius: 46px 46px 17px 17px; background: #f4b7a4; box-shadow: 0 -23px 0 9px #342d52, 30px 64px 0 -8px #ef9b48, -27px 64px 0 -8px #ef9b48; }
+    .character:after { content: ""; position: absolute; top: 36px; left: 21px; width: 9px; height: 9px; border-radius: 50%; background: #3a3144; box-shadow: 32px 0 #3a3144; }
+    .kite { position: absolute; top: 60px; right: 23%; width: 34px; height: 34px; transform: rotate(45deg); background: #eb6580; }
+    .kite:after { content: ""; position: absolute; top: 24px; left: 26px; width: 1px; height: 90px; transform: rotate(-45deg); background: #7b5c77; }
+    .prompt { max-height: 180px; overflow: auto; border-radius: 9px; padding: 12px; color: #d8dcf3; background: #20233d; font: 12px/1.55 ui-monospace, SFMono-Regular, Menlo, monospace; white-space: pre-wrap; }
+    .metrics { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+    .metric { padding: 12px; border-radius: 10px; background: var(--soft); }
+    .metric strong { display: block; margin-top: 3px; font-size: 20px; }
+    .metric span { color: var(--muted); font-size: 11px; }
+    .notice { display: none; margin-top: 13px; padding: 10px 12px; border-radius: 8px; color: var(--green); background: #eaf8f1; font-size: 12px; font-weight: 650; }
+    .notice.show { display: block; }
+    .error { color: #a83a3a; background: #fff0f0; }
+    .meta { display: grid; gap: 8px; margin-top: 14px; }
+    .meta-row { display: flex; justify-content: space-between; gap: 14px; color: var(--muted); font-size: 12px; }
+    .meta-row strong { color: var(--ink); text-align: right; word-break: break-word; }
+    .comparison-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
+    .comparison-card { overflow: hidden; border: 1px solid var(--line); border-radius: 10px; background: var(--soft); }
+    .comparison-card img { display: block; width: 100%; aspect-ratio: 1; object-fit: cover; background: #e8ebf3; }
+    .comparison-body { padding: 10px; }
+    .comparison-body strong { display: block; margin-bottom: 7px; font-size: 12px; }
+    .arm-output { display: grid; grid-template-columns: minmax(0, 1.15fr) minmax(0, .85fr); gap: 10px; padding: 10px; }
+    .arm-output > img { width: 100%; aspect-ratio: 1; object-fit: cover; border-radius: 8px; }
+    .arm-details { min-width: 0; }
+    .arm-details h4 { margin: 0 0 5px; font-size: 11px; }
+    .reference-strip { display: flex; gap: 5px; overflow-x: auto; margin-bottom: 8px; }
+    .reference-strip img { flex: 0 0 44px; width: 44px; height: 44px; border-radius: 6px; object-fit: cover; border: 1px solid var(--line); }
+    .sent-prompt { max-height: 130px; overflow: auto; padding: 7px; border-radius: 6px; color: #d8dcf3; background: #20233d; font: 10px/1.45 ui-monospace, monospace; white-space: pre-wrap; }
+    .mode-tabs { display: flex; gap: 8px; margin: 0 0 18px; padding: 5px; border: 1px solid var(--line); border-radius: 12px; background: var(--panel); }
+    .mode-tab { flex: 1; border: 0; border-radius: 8px; padding: 11px; color: var(--muted); background: transparent; font-weight: 750; }
+    .mode-tab.active { color: #fff; background: var(--purple); }
+    body.user-mode .developer-card { display: none; }
+    body.developer-mode .flow-card, body.developer-mode .flow-progress, body.developer-mode .journey-note { display: none; }
+    .rating-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 7px; }
+    .rating-grid label { font-size: 10px; }
+    .rating-grid select { margin-top: 3px; padding: 6px; font-size: 11px; }
+    @media (max-width: 980px) { .app { grid-template-columns: 1fr; } .sidebar { display: none; } .layout { grid-template-columns: 1fr; } }
+    @media (max-width: 620px) { main { padding: 20px 15px; } .topbar, .form-grid { display: block; } .top-actions { margin-top: 14px; } .form-grid > * { margin-bottom: 13px; } .strategy-grid { grid-template-columns: 1fr; } }
+  </style>
+</head>
+<body class="user-mode">
+  <div class="app">
+    <aside class="sidebar">
+      <div class="brand"><span class="brand-mark">✦</span> hekayti</div>
+      <div class="nav-label">Workspace</div>
+      <div class="nav-item active">▦ <span>Illustration Lab</span></div>
+      <div class="nav-item">♙ <span>Characters</span></div>
+      <div class="nav-item">◫ <span>Stories</span></div>
+      <div class="nav-item">⌁ <span>Experiments</span></div>
+      <div class="sidebar-tip"><strong>AI-connected local preview</strong>The backend uses the installed Bailian CLI. Credentials stay in your local CLI config.</div>
+    </aside>
+
+    <main>
+      <div class="mode-tabs" role="tablist" aria-label="Workspace mode">
+        <button class="mode-tab active" id="user-tab" role="tab" aria-selected="true">User flow</button>
+        <button class="mode-tab" id="developer-tab" role="tab" aria-selected="false">Developer testing</button>
+      </div>
+      <div class="topbar">
+        <div>
+          <h1>Create your child's story</h1>
+          <p class="subtitle">Tell us about your child and we will prepare a complete brief for Hekayti Prompt Studio.</p>
+        </div>
+        <div class="top-actions">
+          <button class="btn" id="reset">Reset demo</button>
+          <button class="btn primary" id="top-make-plugin-prompt">Prepare AI brief</button>
+        </div>
+      </div>
+
+      <div class="flow-progress" aria-label="Story customization steps">
+        <button class="flow-step active" type="button" data-flow-target="child-step"><strong>1</strong>About your child</button>
+        <button class="flow-step" type="button" data-flow-target="goals-step"><strong>2</strong>Story goals</button>
+        <button class="flow-step" type="button" data-flow-target="format-step"><strong>3</strong>Language & format</button>
+        <button class="flow-step" type="button" data-flow-target="personal-step"><strong>4</strong>Personal touch</button>
+        <button class="flow-step" type="button" data-flow-target="review-step"><strong>5</strong>Review & prepare</button>
+      </div>
+      <div class="journey-note"><strong>How it works:</strong> complete the optional parent-friendly steps below. At the end, the page creates one structured message that you can copy into your private Hekayti Prompt Studio agent.</div>
+
+      <div class="layout">
+        <div class="stack">
+          <section class="card developer-card">
+            <div class="card-head"><h2>Developer testing: character profile</h2><span class="badge">Optional</span></div>
+            <div class="form-grid">
+              <label>Character ID<input id="dev-character-id" value="character-1"></label>
+              <label>Character name<input id="name" value="Mina"></label>
+              <label>Age group<input id="age" value="child"></label>
+              <label class="full">Persistent appearance<textarea id="appearance">curly black hair, warm brown eyes, round face, small dimple on left cheek</textarea></label>
+              <label class="full">Canonical outfit<input id="wardrobe" value="yellow raincoat and red boots"></label>
+              <div class="full upload">
+                <div class="avatar">M</div>
+                <div><strong>Reference assets</strong><span class="small">Original photo preserved locally for experiments</span><input id="photo-file" type="file" accept="image/*"><button class="btn" id="upload-photo" type="button">Save local photo</button></div>
+              </div>
+              <div class="full"><button class="btn" id="profile-photo" type="button">Analyze photo with Qwen Vision</button><span class="small" id="profile-status">No candidate profile generated.</span></div>
+            </div>
+          </section>
+
+          <section class="card developer-card">
+            <div class="card-head"><h2>Developer testing: conditioning strategy</h2><span class="small">Optional A/B/C experiment arm</span></div>
+            <div class="strategy-grid">
+              <button class="strategy" data-strategy="sheet"><i class="strategy-dot"></i><b>Character sheet</b><span>Generated style anchor</span></button>
+              <button class="strategy" data-strategy="photos"><i class="strategy-dot"></i><b>Original photos</b><span>Direct identity evidence</span></button>
+              <button class="strategy selected" data-strategy="hybrid"><i class="strategy-dot"></i><b>Hybrid</b><span>Photo + sheet references</span></button>
+            </div>
+          </section>
+
+          <section class="card developer-card">
+            <div class="card-head"><h2>Developer testing: image model</h2><span class="badge" id="quota-status">Loading quota</span></div>
+            <div class="model-picker">
+              <label>Generation model<select id="image-model"><option value="qwen-image-3.0">Loading available models...</option></select></label>
+              <div class="quota-list" id="quota-list"><div class="small">Reading Bailian free quota...</div></div>
+            </div>
+            <button class="btn" id="generate" type="button" style="margin-top:12px" disabled>Image generation disabled</button>
+            <div class="card" style="margin-top:14px">
+              <div class="card-head"><h2>Avatar Stylist</h2><span class="small">Prompt-only wardrobe rules</span></div>
+              <div class="form-grid">
+                <label>Top<input id="wardrobe-top" placeholder="navy hoodie"></label>
+                <label>Outerwear<input id="wardrobe-outerwear" placeholder="yellow raincoat"></label>
+                <label>Bottom<input id="wardrobe-bottom" placeholder="denim trousers"></label>
+                <label>Shoes<input id="wardrobe-shoes" placeholder="red sneakers"></label>
+                <label>Accessories<input id="wardrobe-accessories" placeholder="glasses, backpack"></label>
+                <label>Mode<select id="wardrobe-mode"><option value="locked">Locked</option><option value="preferred" selected>Preferred</option><option value="automatic">Automatic</option></select></label>
+                <label class="full">Mandatory scene costume<input id="mandatory-costume" placeholder="astronaut suit and helmet (optional)"></label>
+              </div>
+              <div class="small">Conflict rule: a mandatory scene costume overrides preferred/automatic wardrobe; locked wardrobe is preserved unless the story role or safety requires a costume. Identity features never change.</div>
+            </div>
+          </section>
+
+          <section class="card developer-card">
+            <div class="card-head"><h2>Developer testing: scene director</h2><span class="badge">Optional</span></div>
+            <div class="scene-list">
+              <div class="scene-row active"><div class="scene-number">01</div><div><strong>مينا تركض في الحديقة</strong><span>Mina runs toward the flowers · joyful garden</span></div><span class="check">✓</span></div>
+              <div class="scene-row"><div class="scene-number">02</div><div><strong>مينا تجد طائرة ورقية</strong><span>Mina discovers a red kite · curious expression</span></div><span class="check">✓</span></div>
+              <div class="scene-row"><div class="scene-number">03</div><div><strong>مينا تعود إلى المنزل</strong><span>Mina walks home · sunset street</span></div><span class="check">✓</span></div>
+            </div>
+            <div class="form-grid" style="margin-top:14px">
+              <label>Scene action<input id="action" value="runs toward the flowers"></label>
+              <label>Expression<select id="expression"><option>excited</option><option>curious</option><option>peaceful</option></select></label>
+              <label class="full">Arabic scene text<textarea id="arabic">مينا تركض في الحديقة وتلوح بيدها نحو الزهور.</textarea></label>
+            </div>
+          </section>
+          <section class="card flow-card" id="child-step">
+            <div class="card-head"><h2>1. Tell us about the child</h2><span class="small">Parent input</span></div>
+            <div class="form-grid">
+              <label>Child's name<input id="plugin-child-name" value="Mina"></label>
+              <label>Child's age (years)<input id="plugin-child-age" type="number" min="1" max="18" step="1" value="6"></label>
+              <label>Child's gender<select id="plugin-child-gender"><option value="girl" selected>Girl</option><option value="boy">Boy</option></select></label>
+              <label class="full">Interests<input id="plugin-interests" placeholder="Animals, space, drawing, sports, adventures, nature"></label>
+              <label>Story type<input id="plugin-story-type" placeholder="Fantasy, adventure, friendship, exploration"></label>
+              <label class="full">More about the child's personality<textarea id="plugin-personality" placeholder="Optional: shy, curious, energetic, kind..."></textarea></label>
+            </div>
+          </section>
+          <section class="card flow-card" id="goals-step">
+            <div class="card-head"><h2>2. Story goals and values</h2><span class="small">Parent input</span></div>
+            <div class="form-grid">
+              <label class="full">What should the child learn?<textarea id="plugin-learning" placeholder="Optional learning goals or knowledge"></textarea></label>
+              <label class="full">What value should the story develop?<textarea id="plugin-values" placeholder="Courage, kindness, patience, teamwork..."></textarea></label>
+              <label class="full">Dream or skill to encourage<textarea id="plugin-skill" placeholder="Optional"></textarea></label>
+              <label class="full">Situation or experience to help the child understand<textarea id="plugin-experience" placeholder="Optional"></textarea></label>
+            </div>
+          </section>
+          <section class="card flow-card" id="format-step">
+            <div class="card-head"><h2>3. Language and story format</h2><span class="small">Parent input</span></div>
+            <div class="form-grid">
+              <label>Story language<select id="plugin-language"><option>Simple Modern Standard Arabic</option><option>Egyptian Arabic</option><option>English</option></select></label>
+              <label>Number of pages / scenes<input id="plugin-scene-count" value="10 + cover"></label>
+              <label class="full">Arabic story text<textarea id="plugin-story" placeholder="Paste the complete Arabic story here, if already written"></textarea></label>
+              <label class="full">Scene breakdown<textarea id="plugin-scenes" placeholder="Optional. Leave blank so the plugin derives scenes while preserving the story meaning."></textarea></label>
+              <div class="full small">The AI will create a suitable title, scene structure, and illustration format when these are not provided.</div>
+            </div>
+          </section>
+          <section class="card flow-card" id="personal-step">
+            <div class="card-head"><h2>4. Personal touch and characters</h2><span class="small">Optional parent input</span></div>
+            <div class="form-grid">
+              <label class="full">Dedication<textarea id="plugin-dedication" placeholder="Optional dedication to the child"></textarea></label>
+              <label class="full">Personal message<textarea id="plugin-message" placeholder="Optional message the story should communicate"></textarea></label>
+              <label class="full">Topics or details to avoid<textarea id="plugin-avoid" placeholder="Optional subjects, fears, or details to avoid"></textarea></label>
+              <label class="full">Additional characters<textarea id="plugin-characters" placeholder="Name, relationship to child, and any known details"></textarea></label>
+              <label class="full">Package or gift additions<textarea id="plugin-package" placeholder="Optional: special gift wrapping, dedication card, stickers, or other additions"></textarea></label>
+              <div class="full small">Reference strategy: use the uploaded child photo and generate a character sheet when useful. Reference filenames and ordering will be defined in the AI prompt pack.</div>
+            </div>
+          </section>
+          <section class="card flow-card" id="review-step">
+            <div class="card-head"><h2>5. Review and prepare the AI brief</h2><span class="small">Copy to Hekayti Prompt Studio</span></div>
+            <div class="form-grid">
+              <div class="full small">The AI will derive observable identity details from the uploaded reference photo when available. Default style: warm 3D animated children's storybook. Default format: 16:9.</div>
+              <div class="full small">Built-in requirements: preserve story meaning, keep identity and wardrobe consistent, and exclude unexpected characters, text, logos, and watermarks.</div>
+            </div>
+            <div class="top-actions" style="margin-top:12px">
+              <button class="btn primary" id="make-plugin-prompt" type="button">Create prompt for plugin</button>
+              <button class="btn" id="copy-plugin-prompt" type="button">Copy prompt</button>
+            </div>
+            <div class="notice" id="plugin-status"></div>
+            <label style="display:block;margin-top:12px">Ready-to-copy plugin message<textarea id="plugin-prompt" rows="18" readonly placeholder="Your structured message will appear here."></textarea></label>
+          </section>
+          <section class="card developer-card">
+            <div class="card-head"><h2>Developer testing: local story experiment</h2><span class="small">No database or deployment</span></div>
+            <label>Complete Arabic story<textarea id="story-ar">مينا تستيقظ مبكرا. ترتدي معطفها الأصفر. تذهب إلى الحديقة. ترى الزهور الملونة. تركض نحوها. تجد طائرة ورقية حمراء. ترفعها في الهواء. تهب الرياح. تضحك مينا. تعود إلى المنزل سعيدة.</textarea></label>
+            <div class="top-actions" style="margin-top:12px"><button class="btn" id="plan-story" type="button">Plan 10 scenes</button><button class="btn primary" id="run-experiment" type="button">Run reference experiment</button></div>
+            <div class="notice" id="experiment-status"></div>
+          </section>
+          <section class="card developer-card">
+            <div class="card-head"><h2>Developer testing: compare experiment arms</h2><span class="small">Human evaluation · local JSON</span></div>
+            <div class="notice show" style="margin-top:0">
+              <strong>Manual evaluation, not automatic vision scoring.</strong><br>
+              You choose 1–5 for resemblance, features, clothing, and scene adherence.
+              The app calculates each arm's average from completed fields and recommends
+              the highest average. It does not inspect the image or prove identity similarity.
+            </div>
+            <div class="model-picker">
+              <label>Experiment run<select id="run-selector"><option>Loading runs...</option></select></label>
+              <button class="btn" id="save-evaluation" type="button">Save ratings locally</button>
+            </div>
+            <div class="comparison-grid" id="comparison-grid" style="margin-top:14px"><div class="small">Run an experiment to compare outputs.</div></div>
+          </section>
+        </div>
+
+        <div class="stack">
+          <section class="card developer-card">
+            <div class="card-head"><h2>Live preview</h2><span class="badge amber" id="status">Ready to generate</span></div>
+            <div class="preview" id="preview">
+              <div class="preview-art"><div class="sun"></div><div class="character"></div><div class="kite"></div></div>
+              <img id="generated-image" alt="Generated illustration">
+            </div>
+            <div class="notice" id="notice">AI generation completed.</div>
+            <div class="notice error" id="error"></div>
+            <div class="meta">
+              <div class="meta-row"><span>Model</span><strong id="model">qwen-image-3.0</strong></div>
+              <div class="meta-row"><span>AI scene direction</span><strong id="planner">Not generated yet</strong></div>
+            </div>
+          </section>
+
+          <section class="card developer-card">
+            <div class="card-head"><h2>Compiled prompt</h2><span class="small" id="ref-count">2 references</span></div>
+            <div class="prompt" id="prompt"></div>
+          </section>
+
+          <section class="card developer-card">
+            <div class="card-head"><h2>Quality snapshot</h2><span class="small">Pilot metrics</span></div>
+            <div class="metrics">
+              <div class="metric"><span>Identity anchor</span><strong>92%</strong></div>
+              <div class="metric"><span>Scene adherence</span><strong>88%</strong></div>
+              <div class="metric"><span>Est. latency</span><strong>8.4s</strong></div>
+            </div>
+          </section>
+          <section class="card developer-card">
+            <div class="card-head"><h2>Previous live test</h2><span class="badge">Real image</span></div>
+            <img src="/generated/hekayti-live-test.png" alt="Previous live Qwen test" style="width:100%; border-radius:10px; background:#eef1f8;">
+            <div class="prompt" id="previous-prompt" style="margin-top:12px;">Loading previous prompt...</div>
+          </section>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <script>
+    const $ = (id) => document.getElementById(id);
+    let strategy = "hybrid";
+    let imageModel = "qwen-image-3.0";
+    let uploadedPhotoPath = "";
+    const references = { sheet: ["character-sheet"], photos: ["original-photo"], hybrid: ["original-photo", "character-sheet"] };
+
+    function setMode(mode) {
+      document.body.classList.toggle("user-mode", mode === "user");
+      document.body.classList.toggle("developer-mode", mode === "developer");
+      $("user-tab").classList.toggle("active", mode === "user");
+      $("developer-tab").classList.toggle("active", mode === "developer");
+      $("user-tab").setAttribute("aria-selected", mode === "user" ? "true" : "false");
+      $("developer-tab").setAttribute("aria-selected", mode === "developer" ? "true" : "false");
+      document.querySelector("h1").textContent = mode === "user" ? "Create your child's story" : "Developer testing workspace";
+      document.querySelector(".subtitle").textContent = mode === "user"
+        ? "Tell us about your child and we will prepare a complete brief for Hekayti Prompt Studio."
+        : "Inspect provider calls, reference strategies, generated images, prompts, and ratings.";
+    }
+    $("user-tab").addEventListener("click", () => setMode("user"));
+    $("developer-tab").addEventListener("click", () => setMode("developer"));
+    document.querySelectorAll("[data-flow-target]").forEach((step) => {
+      step.addEventListener("click", () => {
+        const target = $(step.dataset.flowTarget);
+        if (!target) return;
+        document.querySelectorAll("[data-flow-target]").forEach((item) => item.classList.remove("active"));
+        step.classList.add("active");
+        target.scrollIntoView({behavior: "smooth", block: "start"});
+      });
+    });
+
+    function compilePrompt() {
+      const name = $("name").value.trim() || "Character";
+      const appearance = $("appearance").value.trim() || "consistent appearance";
+      const wardrobe = $("wardrobe").value.trim();
+      const prompt = [
+        "Children's story illustration in a warm, colorful editorial style.",
+        `Original Arabic scene text: ${$("arabic").value.trim()}`,
+        `Character: ${name} (${$("age").value.trim() || "child"}); appearance: ${appearance}.`,
+        wardrobe ? `Wardrobe: ${wardrobe}.` : "",
+        `Action: ${$("action").value.trim() || "standing naturally"}; expression: ${$("expression").value}.`,
+        "Environment: a colorful garden with flowers and soft daylight.",
+        `Identity strategy: ${strategy}. Preserve the character's distinctive hairstyle and facial features.`,
+        "Do not add extra characters, text, logos, or distorted hands."
+      ].filter(Boolean).join("\n");
+      $("prompt").textContent = prompt;
+      $("ref-count").textContent = `${references[strategy].length} reference${references[strategy].length === 1 ? "" : "s"} · ${references[strategy].join(" + ")}`;
+    }
+
+    document.querySelectorAll(".strategy").forEach((button) => {
+      button.addEventListener("click", () => {
+        strategy = button.dataset.strategy;
+        document.querySelectorAll(".strategy").forEach((item) => item.classList.remove("selected"));
+        button.classList.add("selected");
+        compilePrompt();
+      });
+    });
+    ["name", "age", "appearance", "wardrobe", "action", "expression", "arabic"].forEach((id) => {
+      $(id).addEventListener("input", compilePrompt);
+      $(id).addEventListener("change", compilePrompt);
+    });
+    async function generateWithAI() {
+      $("generate").disabled = true;
+      $("generate").textContent = "Generating...";
+      $("status").textContent = "Calling Qwen";
+      $("status").className = "badge amber";
+      $("notice").classList.remove("show");
+      $("error").classList.remove("show");
+      try {
+        const response = await fetch("/api/generate", {
+          method: "POST",
+          headers: {"Content-Type": "application/json"},
+          body: JSON.stringify({
+            name: $("name").value,
+            age: $("age").value,
+            appearance: $("appearance").value,
+            wardrobe: $("wardrobe").value,
+            action: $("action").value,
+            expression: $("expression").value,
+            arabic: $("arabic").value,
+            strategy,
+            model: imageModel
+          })
+        });
+        const result = await response.json();
+        if (!response.ok) throw new Error(result.error || "AI request failed");
+        $("generated-image").src = `${result.image}?t=${Date.now()}`;
+        $("preview").classList.add("has-image");
+        $("prompt").textContent = result.prompt;
+        $("model").textContent = result.model;
+        $("planner").textContent = result.planner || "Completed";
+        $("status").textContent = "AI generated";
+        $("status").className = "badge";
+        $("notice").textContent = "Real Qwen generation completed. Image and prompt are shown below.";
+        $("notice").classList.add("show");
+      } catch (error) {
+        $("status").textContent = "Generation failed";
+        $("status").className = "badge amber";
+        $("error").textContent = error.message;
+        $("error").classList.add("show");
+      } finally {
+        $("generate").disabled = false;
+        $("generate").textContent = "Generate with AI";
+      }
+    }
+    $("generate").addEventListener("click", generateWithAI);
+    function makePluginPrompt() {
+      const value = (id, fallback = "") => {
+        const element = $(id);
+        return element && element.value.trim() ? element.value.trim() : fallback;
+      };
+      const story = value("plugin-story", "[No finished story supplied. Create the story from the child profile, interests, goals, and values while preserving all supplied constraints.]");
+      const childName = value("plugin-child-name", value("name", "Unknown child"));
+      const title = `[Create a suitable title based on ${childName}'s profile and story]`;
+      const sceneCount = Number.parseInt(value("plugin-scene-count", "10"), 10) || 10;
+      const storyInputPayload = {
+        story_id: `hekayti_${childName.toLowerCase().replace(/[^a-z0-9]+/g, "_").replace(/^_|_$/g, "") || "story"}`,
+        title: title,
+        arabic_story_text: story,
+        intended_age: `${value("plugin-child-age", "6")} years old`,
+        num_scenes: sceneCount,
+        visual_style: "Warm 3D animated children's storybook illustration, vibrant colors, soft lighting",
+        aspect_ratio: "16:9",
+        output_format: "High-resolution digital illustration, clean composition",
+        educational_values: [
+          value("plugin-learning", ""),
+          value("plugin-values", ""),
+          value("plugin-skill", ""),
+          value("plugin-experience", "")
+        ].filter(Boolean).join("; "),
+        target_image_model: "Model-Agnostic / Universal",
+        workflow_preference: "compare_all",
+        has_generated_character_sheet: false,
+        supports_multiple_refs: true,
+        supports_editing: true,
+        characters: [{
+          character_id: "CHILD_01",
+          display_name: childName,
+          canonical_name_ar: childName,
+          role: "Protagonist",
+          apparent_age: `${value("plugin-child-age", "6")}-year-old ${value("plugin-child-gender", "girl") === "boy" ? "boy" : (value("plugin-child-gender", "girl") === "girl" ? "girl" : "child")}`,
+          gender: value("plugin-child-gender", "girl"),
+          personality_guidance: value("plugin-personality", ""),
+          source_photos: [],
+          approved_references: [],
+          status: "awaiting_manual_generation_and_approval"
+        }]
+      };
+      window.hekaytiStoryInputPayload = storyInputPayload;
+      const identity = `Derive only observable identity details from the attached child photo(s); preserve the same face, hairstyle, skin tone, body proportions, and wardrobe across scenes. Do not guess unobservable traits.`;
+      const prompt = `# Hekayti Prompt Studio — Input
+
+## 1. Task
+Generate a complete prompt pack for my children's story.
+
+## 1A. Machine-readable StoryInput payload
+Submit this JSON directly to \`POST http://localhost:7860/prompt_studio/create_pack\` when the Arabic story and character details are complete:
+\`\`\`json
+${JSON.stringify(storyInputPayload, null, 2)}
+\`\`\`
+
+## 2. Child profile
+
+- Child's name: ${childName}
+- Child's age: ${value("plugin-child-age", value("age", "Unknown"))}
+- Child's gender: ${value("plugin-child-gender", "girl")}
+- Interests: ${value("plugin-interests", "Not specified")}
+- Favorite story type: ${value("plugin-story-type", "Not specified")}
+- Personality details: ${value("plugin-personality", "Not specified")}
+
+## 3. Story goals and educational value
+
+- What the child should learn: ${value("plugin-learning", "Not specified")}
+- Value to develop: ${value("plugin-values", "Not specified")}
+- Dream or skill to encourage: ${value("plugin-skill", "Not specified")}
+- Situation or experience to help the child understand: ${value("plugin-experience", "Not specified")}
+
+## 4. Story and format
+
+- Story title: ${title}
+- Arabic story text:
+${story}
+- Story language: ${value("plugin-language", "Simple Modern Standard Arabic")}
+- Number of pages/scenes: ${value("plugin-scene-count", "10 + cover")}
+- Scene breakdown:
+${value("plugin-scenes", "[Derive the scene breakdown from the story while preserving its meaning.]")}
+
+## 5. Personalization and characters
+
+- Main character: ${childName}
+- Additional characters: ${value("plugin-characters", "None specified")}
+- Dedication: ${value("plugin-dedication", "None")}
+- Personal message: ${value("plugin-message", "None")}
+- Topics or details to avoid: ${value("plugin-avoid", "Do not invent or guess unobserved traits or sensitive details.")}
+- Reference images: Use the attached child photo(s), then create a character sheet if useful. Define exact filenames and image order in the output.
+- Reference type: Original photos plus AI-generated character sheet when useful.
+- Package or gift additions: ${value("plugin-package", "None")}
+- Identity instructions: ${identity}
+- Features or changes to avoid: ${value("plugin-avoid", "Do not invent or guess unobserved traits or sensitive details.")}
+
+## 6. Visual style
+
+- Target style: Warm 3D animated children's storybook illustration
+- Desired consistency: Same face, hairstyle, skin tone, body proportions, and wardrobe across scenes.
+- Aspect ratio: 16:9
+
+## 7. Special requirements
+
+- Preserve the original story meaning and selected language.
+- No unexpected characters, text, logos, or watermarks.
+- Keep character identities and wardrobe consistent.
+- Other requirements: Generate any missing title, story scenes, visual identity details, and reference manifest from the supplied parent inputs. Do not ask the parent to provide technical image-prompt fields such as model names or character IDs.
+
+## Output instructions
+Return only a complete, clearly labeled prompt pack. Include:
+- the character-sheet prompt;
+- one prompt per scene for Arm A (character sheet), Arm B (original photos), and Arm C (hybrid);
+- exact reference-image order for every prompt;
+- optional repair prompts only when needed.
+Do not generate images or call an image provider. I will copy each prompt manually.`;
+      $("plugin-prompt").value = prompt;
+      $("plugin-status").textContent = "Prompt created. Copy it and paste it into Hekayti Prompt Studio.";
+      $("plugin-status").classList.add("show");
+      return prompt;
+    }
+    function createPluginPromptSafely() {
+      try {
+        makePluginPrompt();
+      } catch (error) {
+        $("plugin-status").textContent = `Could not create the prompt: ${error.message}`;
+        $("plugin-status").classList.add("show", "error");
+      }
+    }
+    $("make-plugin-prompt").addEventListener("click", createPluginPromptSafely);
+    $("top-make-plugin-prompt").addEventListener("click", () => {
+      createPluginPromptSafely();
+      $("plugin-prompt").scrollIntoView({behavior: "smooth", block: "center"});
+    });
+    $("copy-plugin-prompt").addEventListener("click", async () => {
+      const prompt = $("plugin-prompt").value || (createPluginPromptSafely(), $("plugin-prompt").value);
+      try {
+        await navigator.clipboard.writeText(prompt);
+        $("plugin-status").textContent = "Prompt copied to the clipboard.";
+      } catch (error) {
+        $("plugin-prompt").select();
+        $("plugin-status").textContent = "Clipboard access was blocked. The prompt is selected; press Ctrl+C.";
+      }
+      $("plugin-status").classList.add("show");
+    });
+    $("upload-photo").addEventListener("click", async () => {
+      const file = $("photo-file").files[0];
+      if (!file) return;
+      await new Promise((resolve, reject) => {
+        const request = indexedDB.open("hekayti-local-assets", 1);
+        request.onupgradeneeded = () => request.result.createObjectStore("images", {keyPath: "id"});
+        request.onsuccess = () => { const tx = request.result.transaction("images", "readwrite"); tx.objectStore("images").put({id: "character-1-" + file.name, name: file.name, blob: file, savedAt: new Date().toISOString()}); tx.oncomplete = resolve; tx.onerror = reject; };
+        request.onerror = reject;
+      });
+      const form = new FormData();
+      form.append("file", file);
+      const response = await fetch("/api/upload-photo", {method: "POST", headers: {"X-Character-Id": "character-1"}, body: form});
+      const result = await response.json();
+      if (!response.ok) return alert(result.error || "Photo upload failed");
+      uploadedPhotoPath = result.path;
+      $("profile-status").textContent = `Saved locally: ${result.filename} (${result.dimensions ? result.dimensions.join("×") : "dimensions unavailable"})`;
+    });
+    function developerCharacterId() {
+    return $("dev-character-id").value.trim() || "character-1";
+    }
+    let plannedScenes = null;
+    $("profile-photo").addEventListener("click", async () => {
+    if (!uploadedPhotoPath) return alert("Save a local photo first.");
+    $("profile-status").textContent = "Calling Qwen Vision...";
+    const response = await fetch("/api/profile", {method: "POST", headers: {"Content-Type": "application/json"}, body: JSON.stringify({character_id: developerCharacterId(), photo_path: uploadedPhotoPath})});
+      const result = await response.json();
+      $("profile-status").textContent = response.ok ? "Candidate profile saved locally. Review it before using it as identity truth." : (result.error || "Profile generation failed");
+    });
+    $("plan-story").addEventListener("click", async () => {
+      $("experiment-status").textContent = "Planning structured scenes with Qwen...";
+      $("experiment-status").classList.add("show");
+      const response = await fetch("/api/plan-story", {method: "POST", headers: {"Content-Type": "application/json"}, body: JSON.stringify({character_id: developerCharacterId(), story_ar: $("story-ar").value})});
+      const result = await response.json();
+      plannedScenes = response.ok ? result.scenes : null;
+      $("experiment-status").textContent = response.ok ? `Validated ${result.scenes.length} scenes and saved demo/experiments/current/story.json.` : (result.error || "Story planning failed");
+    });
+    $("run-experiment").addEventListener("click", async () => {
+      if (!uploadedPhotoPath) return alert("Save a local photo first.");
+      const scenes = plannedScenes && plannedScenes.length
+        ? plannedScenes
+        : [{scene_id: "scene_01", scene_text_ar: $("story-ar").value, characters: [{character_id: developerCharacterId(), action: $("action").value, pose: "running", expression: $("expression").value}], environment: "colorful garden", props: ["flowers"], camera: "wide shot", mood: "joyful", continuity_requirements: ["preserve yellow raincoat"]}];
+      $("experiment-status").textContent = "Running three reference arms. This uses image quota.";
+      $("experiment-status").classList.add("show");
+      const response = await fetch("/api/experiment", {method: "POST", headers: {"Content-Type": "application/json"}, body: JSON.stringify({
+        photo_paths: [uploadedPhotoPath],
+        story_ar: $("story-ar").value,
+        scenes
+      })});
+      const result = await response.json();
+      $("experiment-status").textContent = response.ok ? `Experiment ${result.run_id} finished. Results saved under demo/experiments/${result.run_id}/.` : (result.error || "Experiment failed");
+      if (response.ok) loadExperimentRuns(result.run_id);
+    });
+    async function loadExperimentRuns(preferredRun) {
+      const response = await fetch("/api/experiments");
+      const data = await response.json();
+      const runs = data.runs || [];
+      const selector = $("run-selector");
+      selector.innerHTML = "";
+      runs.forEach((run) => {
+        const option = document.createElement("option");
+        option.value = run.run_id;
+        option.textContent = `${run.run_id} · ${run.results.length} outputs`;
+        selector.appendChild(option);
+      });
+      if (!runs.length) {
+        selector.innerHTML = "<option>No completed runs</option>";
+        return;
+      }
+      selector.value = preferredRun || runs[0].run_id;
+      renderComparison(runs.find((run) => run.run_id === selector.value) || runs[0]);
+      selector.onchange = () => renderComparison(runs.find((run) => run.run_id === selector.value));
+    }
+    function renderComparison(run) {
+      const grid = $("comparison-grid");
+      const groups = {};
+      (run.results || []).forEach((result, index) => {
+        const key = result.strategy;
+        groups[key] = result;
+        result.ratingIndex = index;
+      });
+      const arms = ["arm_a_sheet", "arm_b_photos", "arm_c_hybrid"];
+      grid.innerHTML = arms.map((arm) => {
+        const result = groups[arm];
+        const image = result && result.success
+          ? `/experiments/${run.run_id}/scenes/${result.scene_id}/${arm}/result.png`
+          : "";
+        const references = result && result.reference_urls && result.reference_urls.length
+          ? result.reference_urls.map((url, index) => `<img src="${url}" alt="Reference ${index + 1}" title="Reference ${index + 1}">`).join("")
+          : `<span class="small">No reference preview</span>`;
+        const sentPrompt = result && result.prompt ? result.prompt : "Prompt not recorded for this result.";
+        return `<div class="comparison-card">
+          <div class="arm-output">
+            ${image ? `<img src="${image}" alt="${arm} output">` : `<div style="aspect-ratio:1;display:grid;place-items:center;padding:12px;color:#8a5260;font-size:12px;text-align:center;">No accepted image<br>${result?.error || "not run"}</div>`}
+            <div class="arm-details">
+              <h4>References sent</h4>
+              <div class="reference-strip">${references}</div>
+              <h4>Exact prompt sent</h4>
+              <div class="sent-prompt">${escapeHtml(sentPrompt)}</div>
+            </div>
+          </div>
+          <div class="comparison-body"><strong>${arm.replace("arm_", "").replace("_", " ")}</strong>
+            <div class="small">${result ? `${result.duration_seconds}s · ${result.references_sent.length} refs` : "No result"}</div>
+            <div class="rating-grid">
+              ${["resemblance", "features", "clothing", "scene"].map((metric) => `<label>${metric}<select data-arm="${arm}" data-metric="${metric}"><option value="">—</option><option>1</option><option>2</option><option>3</option><option>4</option><option>5</option></select></label>`).join("")}
+            </div>
+          </div>
+        </div>`;
+      }).join("");
+    }
+    function escapeHtml(value) {
+      return String(value).replace(/[&<>"']/g, (character) => ({
+        "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;"
+      }[character]));
+    }
+    $("save-evaluation").addEventListener("click", async () => {
+      const ratings = [...document.querySelectorAll("[data-arm][data-metric]")].map((field) => ({
+        arm: field.dataset.arm, metric: field.dataset.metric, score: field.value ? Number(field.value) : null
+      }));
+      const runId = $("run-selector").value;
+      const response = await fetch("/api/evaluation", {method: "POST", headers: {"Content-Type": "application/json"}, body: JSON.stringify({run_id: runId, ratings})});
+      const saved = response.ok ? response.json() : Promise.resolve(null);
+      const result = await saved;
+      $("experiment-status").textContent = response.ok
+        ? `Ratings saved. ${result.recommendation ? `Recommended: ${result.recommendation.arm} (${result.recommendation.average}/5).` : "Add at least one rating to calculate a recommendation."}`
+        : "Could not save ratings.";
+      $("experiment-status").classList.add("show");
+    });
+    $("image-model").addEventListener("change", (event) => {
+      imageModel = event.target.value;
+      $("model").textContent = imageModel;
+    });
+    async function loadQuota() {
+      try {
+        const response = await fetch("/api/quota");
+        const result = await response.json();
+        if (!response.ok) throw new Error(result.error || "Quota unavailable");
+        const models = result.models || [];
+        const select = $("image-model");
+        select.innerHTML = "";
+        if (!models.length) throw new Error("No image models returned");
+        models.forEach((item) => {
+          const option = document.createElement("option");
+          option.value = item.model;
+          option.textContent = `${item.model} · ${item.remaining}/${item.total} free`;
+          select.appendChild(option);
+        });
+        imageModel = models.some((item) => item.model === "qwen-image-3.0")
+          ? "qwen-image-3.0" : models[0].model;
+        select.value = imageModel;
+        $("model").textContent = imageModel;
+        $("quota-status").textContent = `${models.length} models available`;
+        $("quota-status").className = "badge";
+        $("quota-list").innerHTML = models.map((item) =>
+          `<div class="quota-row"><span>${item.model}</span><strong>${item.remaining}/${item.total} · expires ${item.expires || "—"}</strong></div>`
+        ).join("");
+      } catch (error) {
+        $("quota-status").textContent = "Quota unavailable";
+        $("quota-status").className = "badge amber";
+        $("quota-list").textContent = error.message;
+      }
+    }
+    loadQuota();
+    loadExperimentRuns();
+    fetch("/previous-test.json").then((response) => response.json()).then((data) => {
+      $("previous-prompt").textContent =
+        `Model: ${data.model}\nSize: ${data.size}\nPrompt extension: ${data.prompt_extend}\n\n${data.prompt}\n\nNegative prompt: ${data.negative_prompt}`;
+    }).catch(() => {
+      $("previous-prompt").textContent = "Previous test metadata unavailable.";
+    });
+    $("reset").addEventListener("click", () => window.location.reload());
+    // Prompt-only wardrobe workflow: compile structured sections locally and keep a browser history.
+    const wardrobeIds = ["wardrobe-top", "wardrobe-outerwear", "wardrobe-bottom", "wardrobe-shoes", "wardrobe-accessories", "wardrobe-mode", "mandatory-costume"];
+    const promptHistoryKey = "hekayti.promptHistory.v1";
+    function wardrobePayload() {
+      return {
+        top: $("wardrobe-top").value, outerwear: $("wardrobe-outerwear").value,
+        bottom: $("wardrobe-bottom").value, shoes: $("wardrobe-shoes").value,
+        accessories: $("wardrobe-accessories").value.split(",").map((x) => x.trim()).filter(Boolean),
+        mode: $("wardrobe-mode").value
+      };
+    }
+    async function compileStructuredPrompt() {
+      const response = await fetch("/api/compile-prompt", {method: "POST", headers: {"Content-Type": "application/json"}, body: JSON.stringify({
+        name: $("name").value || "Child", age: $("age").value || "child",
+        appearance: [$("appearance").value || "consistent facial features"],
+        scene: $("action").value || "standing naturally", setting: "a colorful storybook setting",
+        action: $("action").value || "standing naturally", expression: $("expression").value || "happy",
+        wardrobe: wardrobePayload(), mandatory_costume: $("mandatory-costume").value,
+        strategy: strategy || "hybrid", references: ["original-photo", "approved-character-sheet"]
+      })});
+      const result = await response.json();
+      if (!response.ok) throw new Error(result.error || "Prompt compilation failed");
+      $("prompt").textContent = result.positive + "\n\nNegative constraints: " + result.negative;
+      localStorage.setItem(promptHistoryKey, JSON.stringify([{savedAt: new Date().toISOString(), result: result}, ...JSON.parse(localStorage.getItem(promptHistoryKey) || "[]")].slice(0, 20)));
+      return result;
+    }
+    wardrobeIds.forEach((id) => $(id)?.addEventListener("input", () => compileStructuredPrompt().catch((error) => {
+      $("experiment-status").textContent = error.message; $("experiment-status").classList.add("show");
+    })));
+    const exportButton = document.createElement("button");
+    exportButton.className = "btn"; exportButton.type = "button"; exportButton.textContent = "Export structured prompt JSON";
+    $("plugin-prompt").parentElement.appendChild(exportButton);
+    exportButton.addEventListener("click", async () => {
+      const result = await compileStructuredPrompt();
+      const blob = new Blob([JSON.stringify(result, null, 2)], {type: "application/json"});
+      const link = document.createElement("a"); link.href = URL.createObjectURL(blob); link.download = "hekayti-structured-prompt.json"; link.click(); URL.revokeObjectURL(link.href);
+    });
+    compileStructuredPrompt().catch(() => {});
+    compilePrompt();
+  </script>
+</body>
+</html>

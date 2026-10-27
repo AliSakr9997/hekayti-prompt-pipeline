@@ -1,0 +1,31 @@
+{
+  "success": true,
+  "error": null,
+  "duration_seconds": 45.432,
+  "references_sent": [
+    "C:\\Users\\alisa\\copilot-worktrees\\image model\\alisakr9997-probable-meme\\demo\\experiments\\run_20261023_030024\\characters\\character-1\\character_sheet.png",
+    "demo\\experiments\\current\\characters\\character-1\\source_photos\\b298b4db59-hekayti-live-test.png"
+  ],
+  "provider_result": {
+    "provider": "dashscope-direct",
+    "endpoint": "https://dashscope-intl.aliyuncs.com/api/v1/services/aigc/multimodal-generation/generation",
+    "model": "qwen-image-2.1-turbo",
+    "reference_count": 2,
+    "references": [
+      {
+        "path": "C:\\Users\\alisa\\copilot-worktrees\\image model\\alisakr9997-probable-meme\\demo\\experiments\\run_20261023_030024\\characters\\character-1\\character_sheet.png",
+        "sha256": "77581233f2d5e9378cc3614483c239ca3c1b11851d31174229b1067a52891b7d"
+      },
+      {
+        "path": "demo\\experiments\\current\\characters\\character-1\\source_photos\\b298b4db59-hekayti-live-test.png",
+        "sha256": "19a1402524fcbccb70f7b5f0e3f8a8971566500824d7db20a3c71ad21d076c9e"
+      }
+    ],
+    "request_id": "f90c481d-36fe-961f-9ff8-7821502e0ca6",
+    "usage": {
+      "height": 2048,
+      "image_count": 1,
+      "width": 2048
+    }
+  }
+}

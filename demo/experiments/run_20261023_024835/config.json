@@ -1,0 +1,12 @@
+{
+  "image_model": "qwen-image-2.1-turbo",
+  "conditioning_interface": "image-edit with actual --image file references",
+  "photo_paths": [
+    "C:\\Users\\alisa\\copilot-worktrees\\image model\\alisakr9997-probable-meme\\demo\\experiments\\current\\characters\\character-1\\source_photos\\b298b4db59-hekayti-live-test.png"
+  ],
+  "strategies": [
+    "sheet",
+    "photos",
+    "hybrid"
+  ]
+}

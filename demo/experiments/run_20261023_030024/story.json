@@ -1,0 +1,26 @@
+{
+  "scenes": [
+    {
+      "scene_id": "scene_01",
+      "scene_text_ar": "???? ???? ??? ??? ???? ?? ????? ?????",
+      "characters": [
+        {
+          "character_id": "character-1",
+          "action": "reads a picture book",
+          "pose": "sitting under a tree",
+          "expression": "happy"
+        }
+      ],
+      "environment": "sunny garden",
+      "props": [
+        "picture book",
+        "tree"
+      ],
+      "camera": "wide shot",
+      "mood": "warm and joyful",
+      "continuity_requirements": [
+        "preserve observable identity from references"
+      ]
+    }
+  ]
+}

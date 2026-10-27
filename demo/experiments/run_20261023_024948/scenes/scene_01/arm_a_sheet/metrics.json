@@ -1,0 +1,7 @@
+{
+  "success": false,
+  "status": "unsupported",
+  "error": "The installed Bailian CLI image-edit path failed its upload-policy request with InvalidApiKey for local references. The model catalog exposes qwen-image-2.1-turbo through a different multimodal-generation endpoint, which this CLI wrapper does not expose.",
+  "duration_seconds": 0,
+  "references_sent": []
+}

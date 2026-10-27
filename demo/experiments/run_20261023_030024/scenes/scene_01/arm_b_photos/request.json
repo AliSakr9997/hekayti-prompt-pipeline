@@ -1,0 +1,30 @@
+{
+  "provider": "dashscope-direct",
+  "model": "qwen-image-2.1-turbo",
+  "prompt": "Children's storybook illustration. Preserve the original scene meaning: ???? ???? ??? ??? ???? ?? ????? ?????. Characters: character-1: reads a picture book, pose sitting under a tree, expression happy. Environment: sunny garden. Props: picture book, tree. Camera: wide shot. Mood: warm and joyful. Continuity: preserve observable identity from references. Preserve identity from the supplied reference images. No extra characters, text, logos, or watermark.",
+  "references": [
+    "demo\\experiments\\current\\characters\\character-1\\source_photos\\b298b4db59-hekayti-live-test.png"
+  ],
+  "strategy": "arm_b_photos",
+  "dimensions": "1024*1024",
+  "prompt_extend": false,
+  "reference_interface": "multimodal-generation",
+  "provider_result": {
+    "provider": "dashscope-direct",
+    "endpoint": "https://dashscope-intl.aliyuncs.com/api/v1/services/aigc/multimodal-generation/generation",
+    "model": "qwen-image-2.1-turbo",
+    "reference_count": 1,
+    "references": [
+      {
+        "path": "demo\\experiments\\current\\characters\\character-1\\source_photos\\b298b4db59-hekayti-live-test.png",
+        "sha256": "19a1402524fcbccb70f7b5f0e3f8a8971566500824d7db20a3c71ad21d076c9e"
+      }
+    ],
+    "request_id": "8d3d8d9e-27ca-9386-89de-11709e3eadc0",
+    "usage": {
+      "height": 2048,
+      "image_count": 1,
+      "width": 2048
+    }
+  }
+}

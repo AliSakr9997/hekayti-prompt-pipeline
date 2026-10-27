@@ -1,0 +1,8 @@
+{
+  "provider": "bailian-cli",
+  "model": "qwen-image-2.1-turbo",
+  "prompt": "Children's storybook illustration. Preserve the original scene meaning: مينا تركض في الحديقة. Characters: character-1: runs, pose running, expression happy. Environment: garden. Props: flowers. Camera: wide shot. Mood: joyful. Continuity: yellow coat. Preserve identity from the supplied reference images. No extra characters, text, logos, or watermark.",
+  "references": [],
+  "strategy": "arm_a_sheet",
+  "conditioning_supported": false
+}

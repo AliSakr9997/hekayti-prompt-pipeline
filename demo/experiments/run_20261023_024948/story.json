@@ -1,0 +1,25 @@
+{
+  "scenes": [
+    {
+      "props": [
+        "flowers"
+      ],
+      "scene_id": "scene_01",
+      "camera": "wide shot",
+      "continuity_requirements": [
+        "yellow coat"
+      ],
+      "scene_text_ar": "مينا تركض في الحديقة",
+      "environment": "garden",
+      "mood": "joyful",
+      "characters": [
+        {
+          "expression": "happy",
+          "pose": "running",
+          "character_id": "character-1",
+          "action": "runs"
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,39 @@
+{
+  "run_id": "run_20261023_024948",
+  "image_model": "qwen-image-2.1-turbo",
+  "conditioning_supported": false,
+  "limitation": "The installed Bailian CLI image-edit path failed its upload-policy request with InvalidApiKey for local references. The model catalog exposes qwen-image-2.1-turbo through a different multimodal-generation endpoint, which this CLI wrapper does not expose.",
+  "results": [
+    {
+      "scene_id": "scene_01",
+      "strategy": "arm_a_sheet",
+      "success": false,
+      "status": "unsupported",
+      "error": "The installed Bailian CLI image-edit path failed its upload-policy request with InvalidApiKey for local references. The model catalog exposes qwen-image-2.1-turbo through a different multimodal-generation endpoint, which this CLI wrapper does not expose.",
+      "duration_seconds": 0,
+      "references_sent": []
+    },
+    {
+      "scene_id": "scene_01",
+      "strategy": "arm_b_photos",
+      "success": false,
+      "status": "unsupported",
+      "error": "The installed Bailian CLI image-edit path failed its upload-policy request with InvalidApiKey for local references. The model catalog exposes qwen-image-2.1-turbo through a different multimodal-generation endpoint, which this CLI wrapper does not expose.",
+      "duration_seconds": 0,
+      "references_sent": [
+        "C:\\Users\\alisa\\copilot-worktrees\\image model\\alisakr9997-probable-meme\\demo\\experiments\\current\\characters\\character-1\\source_photos\\b298b4db59-hekayti-live-test.png"
+      ]
+    },
+    {
+      "scene_id": "scene_01",
+      "strategy": "arm_c_hybrid",
+      "success": false,
+      "status": "unsupported",
+      "error": "The installed Bailian CLI image-edit path failed its upload-policy request with InvalidApiKey for local references. The model catalog exposes qwen-image-2.1-turbo through a different multimodal-generation endpoint, which this CLI wrapper does not expose.",
+      "duration_seconds": 0,
+      "references_sent": [
+        "C:\\Users\\alisa\\copilot-worktrees\\image model\\alisakr9997-probable-meme\\demo\\experiments\\current\\characters\\character-1\\source_photos\\b298b4db59-hekayti-live-test.png"
+      ]
+    }
+  ]
+}

@@ -1,0 +1,25 @@
+{
+  "scenes": [
+    {
+      "props": [
+        "flowers"
+      ],
+      "scene_id": "scene_01",
+      "camera": "wide shot",
+      "continuity_requirements": [
+        "preserve yellow raincoat"
+      ],
+      "scene_text_ar": "مينا تركض في الحديقة وتلوح بيدها نحو الزهور.",
+      "environment": "colorful garden",
+      "mood": "joyful",
+      "characters": [
+        {
+          "expression": "excited",
+          "pose": "running",
+          "character_id": "character-1",
+          "action": "runs toward the flowers"
+        }
+      ]
+    }
+  ]
+}

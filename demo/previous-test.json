@@ -1,0 +1,8 @@
+{
+  "image": "/generated/hekayti-live-test.png",
+  "model": "qwen-image-3.0",
+  "size": "1024*1024",
+  "prompt_extend": false,
+  "prompt": "A warm colorful children's storybook illustration of a smiling child with curly black hair wearing a yellow raincoat and red boots, running toward flowers in a sunny garden, gentle editorial watercolor style, no text, no logo",
+  "negative_prompt": "extra characters, text, watermark, distorted hands"
+}
