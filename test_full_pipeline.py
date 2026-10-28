@@ -276,3 +276,71 @@ def test_two_character_reference_mapping_and_unified_prompt(tmp_path):
         assert "9:16" in prompt
         assert "vertical" in prompt.lower()
 
+
+def test_three_characters_up_to_limit_with_frequency_and_kinship(tmp_path):
+    """
+    Verify full support for up to 3 characters in the story (Child + 2 additional):
+    - Child (Karim) is Character 1 [Image 1]
+    - Additional Character 1 (Teacher Huda): Kinship='المعلمة', Frequency='كثير', Role='معلمة علوم', Impact='تشجيع' -> [Image 2]
+    - Additional Character 2 (Grandmother Salma): Kinship='الجدة', Frequency='قليل', Role='خياطة حكيمة', Impact='نصيحة' -> [Image 3]
+    - Verify frequency distribution: Teacher Huda appears in more scenes than Grandmother.
+    - Verify image index mapping: [Image 1], [Image 2], [Image 3] maintained consistently without facial descriptions.
+    """
+    engine = PromptStudioEngine(output_dir=tmp_path)
+    request = FullPipelineRequest(
+        child_name="كريم / Karim",
+        child_age=7,
+        child_gender="boy",
+        page_count=5,
+        interests=["الفضاء", "الرسم"],
+        story_goal="الصبر والتعلم المشترك",
+        story_type="مغامرة عائلية ومدرسية",
+        additional_characters=[
+            {
+                "name": "المعلمة هدى / Teacher Huda",
+                "relationship": "معلمة",
+                "appearance_frequency": "كثير",
+                "role": "معلمة العلوم بالمدرسة",
+                "impact": "تشجيع كريم على مراقبة النجوم وكتابة الملاحظات"
+            },
+            {
+                "name": "الجدة سلمى / Grandma Salma",
+                "relationship": "الجدة",
+                "appearance_frequency": "قليل",
+                "role": "الجدة الحكيمة",
+                "impact": "إهداء تلسكوب قديم وتشجيع المحاولة"
+            }
+        ],
+        provider_preference="fallback",
+    )
+
+    result = engine.generate_full_pipeline(request)
+    assert result["success"] is True
+    story = result["story"]
+    scenes = result["scenes"]
+    assert len(story["character_designs"]) == 3
+    assert len(scenes) == 5
+
+    # Check character metadata preservation
+    char_designs = story["character_designs"]
+    assert char_designs[0]["name"] == "كريم / Karim"
+    assert char_designs[1]["relationship"] == "معلمة"
+    assert char_designs[1]["appearance_frequency"] == "كثير"
+    assert char_designs[2]["relationship"] == "الجدة"
+    assert char_designs[2]["appearance_frequency"] == "قليل"
+
+    # Count appearances across pages
+    teacher_scenes = [p for p in story["pages"] if "char_support_01" in p["character_reference_ids"]]
+    grandma_scenes = [p for p in story["pages"] if "char_support_02" in p["character_reference_ids"]]
+    assert len(teacher_scenes) > len(grandma_scenes), "High-frequency character must appear more often than low-frequency character"
+
+    # Verify prompt formatting in scenes
+    for sc in scenes:
+        prompt = sc["image_prompt"]
+        assert "Negative prompt:" in prompt
+        assert "9:16" in prompt
+        assert "dark-brown eyes" not in prompt
+        # Karim is always Image 1
+        assert "Karim is the first image [Image 1]" in prompt
+
+

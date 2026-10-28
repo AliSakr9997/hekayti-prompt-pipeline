@@ -71,6 +71,10 @@ class CharacterProfile(BaseModel):
     body_proportions: str = Field(default="", description="Proportions, e.g., 'Pixar-style child proportions'")
     distinctive_features: str = Field(default="", description="Distinctive marks, e.g., 'dimple on right cheek'")
     
+    relationship: str = Field(default="", description="Relationship to child, e.g. 'Mother', 'Father', 'Teacher', 'Grandmother', 'Friend'")
+    appearance_frequency: str = Field(default="medium", description="Appearance frequency: 'low', 'medium', 'high' or 'قليل', 'متوسط', 'كثير'")
+    story_impact: str = Field(default="", description="Role or impact on child decisions / plot")
+
     # Invariants vs Variables
     canonical_clothing: str = Field(default="", description="Standard outfit, e.g., 'royal blue hoodie with silver star patch'")
     wardrobe_changes: Optional[str] = Field(default="", description="Scene-specific variations, e.g., 'astronaut helmet'")
@@ -628,12 +632,17 @@ Return a valid JSON array of objects with keys:
         return scene_plans
 
     @classmethod
-    def build_character_reference_mapping(cls, characters: List[Any]) -> str:
+    def build_character_reference_mapping(
+        cls,
+        characters: List[Any],
+        all_characters: Optional[List[Any]] = None
+    ) -> str:
         """
-        Build explicit reference mapping for all characters in the story.
-        Strictly instructs AI not to describe facial features and to use
-        the attached referenced images by index.
-        e.g. 'Karim is the first image [Image 1], and Teacher Huda is the second image [Image 2].'
+        Build explicit reference mapping for all characters in the story (up to 3 characters total):
+        - 1 character: Karim is the first image [Image 1]
+        - 2 characters: Karim is the first image [Image 1], and Teacher Huda is the second image [Image 2]
+        - 3 characters: Karim is the first image [Image 1], Teacher Huda is the second image [Image 2], and Grandma Salma is the third image [Image 3]
+        Maintains consistent 1-based indexing relative to the global story character list.
         """
         if not characters:
             return (
@@ -642,15 +651,36 @@ Return a valid JSON array of objects with keys:
                 "strictly do NOT describe character faces in text or alter their faces."
             )
 
-        ordinals = ["first", "second", "third", "fourth", "fifth", "sixth", "seventh", "eighth"]
-        parts = []
-        for idx, char in enumerate(characters):
-            c_name = getattr(char, "display_name", "") or getattr(char, "name", "") or f"Character {idx+1}"
-            clean_name = c_name.split("/")[-1].strip() if "/" in c_name else c_name.strip()
-            ord_word = ordinals[idx] if idx < len(ordinals) else f"{idx+1}th"
-            parts.append(f"{clean_name} is the {ord_word} image [Image {idx+1}]")
+        ordinals = ["first", "second", "third", "fourth", "fifth"]
+        global_list = all_characters or characters
 
-        mapping_str = ", and ".join(parts) if len(parts) == 2 else ", ".join(parts)
+        # Build consistent global index map for all characters in story (1-based)
+        global_index_map = {}
+        for g_idx, g_char in enumerate(global_list[:3]):
+            cid = getattr(g_char, "character_id", "") or str(g_idx)
+            cname = getattr(g_char, "display_name", "") or getattr(g_char, "name", "")
+            global_index_map[cid] = g_idx + 1
+            global_index_map[cname] = g_idx + 1
+            if "/" in cname:
+                global_index_map[cname.split("/")[-1].strip()] = g_idx + 1
+                global_index_map[cname.split("/")[0].strip()] = g_idx + 1
+
+        parts = []
+        for char in characters[:3]:
+            c_name = getattr(char, "display_name", "") or getattr(char, "name", "") or "Character"
+            clean_name = c_name.split("/")[-1].strip() if "/" in c_name else c_name.strip()
+            cid = getattr(char, "character_id", "")
+            img_num = global_index_map.get(cid) or global_index_map.get(c_name) or global_index_map.get(clean_name) or (len(parts) + 1)
+            ord_word = ordinals[img_num - 1] if (img_num - 1) < len(ordinals) else f"{img_num}th"
+            parts.append(f"{clean_name} is the {ord_word} image [Image {img_num}]")
+
+        if len(parts) == 1:
+            mapping_str = parts[0]
+        elif len(parts) == 2:
+            mapping_str = f"{parts[0]}, and {parts[1]}"
+        else:
+            mapping_str = f"{parts[0]}, {parts[1]}, and {parts[2]}"
+
         return (
             f"Character reference mapping: {mapping_str}. "
             "Use their referenced imported images for their facial appearance, hair, and identity. "
@@ -666,12 +696,11 @@ Return a valid JSON array of objects with keys:
     ) -> None:
         """
         Make the deferred image-reference contract explicit in every prompt:
-        1. Character reference mapping (e.g. Karim is the first image [Image 1], and Teacher is the second image [Image 2]).
+        1. Character reference mapping (e.g. Karim is the first image [Image 1], Teacher is the second image [Image 2], Grandma is the third image [Image 3]).
         2. Reference images available instruction.
         3. 9:16 vertical aspect ratio.
         4. One unified prompt containing both prompt + negative prompt.
         """
-        mapping_note = cls.build_character_reference_mapping(characters or [])
         reference_note = (
             "Reference images are available to the image model as attached inputs. "
             "Use them only for identity and visual continuity, then fully redraw the character "
@@ -685,7 +714,18 @@ Return a valid JSON array of objects with keys:
         ratio_note = f"Aspect ratio: {aspect_ratio} vertical format."
 
         for scene in scene_plans:
+            # Check characters present in this specific scene
+            scene_char_ids = scene.get("character_reference_ids") or []
+            if scene_char_ids and characters:
+                sc_chars = [c for c in characters if getattr(c, "character_id", "") in scene_char_ids]
+                if not sc_chars:
+                    sc_chars = characters[:1]
+            else:
+                sc_chars = characters or []
+
+            mapping_note = cls.build_character_reference_mapping(sc_chars, all_characters=characters)
             neg_to_use = scene.get("negative_prompt") or neg_default
+
             for field in ("prompt_workflow_a", "prompt_workflow_b", "prompt_workflow_c"):
                 prompt = str(scene.get(field, "")).strip()
                 if not prompt:
@@ -2139,6 +2179,11 @@ def story_dict_to_story_input(
         clothing = cd.get("clothing", "")
         dist_features = cd.get("distinctive_features", "")
 
+        rel = cd.get("relationship", "")
+        freq = cd.get("appearance_frequency", "medium")
+        role_val = cd.get("role", "Supporting Character" if idx > 0 else "Protagonist")
+        impact_val = cd.get("impact", "")
+
         if idx == 0:
             role = "Protagonist"
             apparent_age = f"{intended_age}-year-old {gender}"
@@ -2148,7 +2193,7 @@ def story_dict_to_story_input(
             photos = []
             invs = [wardrobe, dist_features] if dist_features else [wardrobe]
         else:
-            role = "Supporting Character"
+            role = role_val
             apparent_age = "Supporting Character"
             hair = appearance
             wardrobe = clothing
@@ -2162,6 +2207,9 @@ def story_dict_to_story_input(
             canonical_name_ar=c_name,
             canonical_name_en=c_slug.title(),
             role=role,
+            relationship=rel,
+            appearance_frequency=freq,
+            story_impact=impact_val,
             apparent_age=apparent_age,
             gender=gender if idx == 0 else "character",
             hair_details=hair,

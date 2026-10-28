@@ -1341,6 +1341,34 @@
                         <label for="intake_personality" data-i18n="lbl_personality">شخصية وسلوك الطفل:</label>
                         <textarea id="intake_personality" class="clay-textarea" data-i18n-ph="ph_personality" placeholder="مثال: فضولي، يحب الاكتشاف، مرح، خجول أحياناً ولكنه شجاع عند المحاولة...">طفلة مرحة وفضولية تحب مراقبة الطبيعة واللعب في الهواء الطلق.</textarea>
                     </div>
+
+                    <!-- ==========================================
+                         Additional Characters in Story (Up to 2 extra, max 3 in story)
+                         ========================================== -->
+                    <div class="clay-card" style="margin-top: 20px; margin-bottom: 20px; padding: 18px; background: rgba(99, 102, 241, 0.04); border: 1.5px dashed rgba(99, 102, 241, 0.35); border-radius: 14px;">
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; flex-wrap: wrap; gap: 8px;">
+                            <div>
+                                <h4 style="margin: 0; font-size: 15px; color: #3730a3; display: flex; align-items: center; gap: 8px;">
+                                    <span style="font-size: 18px;">👥</span>
+                                    <span data-i18n="lbl_additional_chars_title">شخصيات إضافية في القصة (اختياري - حتى شخصيتين إضافيتين)</span>
+                                </h4>
+                                <p style="margin: 4px 0 0; font-size: 12px; color: var(--dp-color-ink-secondary);" data-i18n="desc_additional_chars">
+                                    الطفل هو البطل الرئيسي [الصورة 1]. يمكنك إضافة حتى شخصيتين إضافيتين [الصورة 2 و 3] مع تحديد صلة القرابة ونسبة الظهور.
+                                </p>
+                            </div>
+                            <button type="button" class="btn-pill-secondary" id="btn_add_extra_character" onclick="addExtraCharacterSlot()" style="font-size: 12px; padding: 6px 14px; display: inline-flex; align-items: center; gap: 6px;">
+                                <span>➕</span> <span data-i18n="btn_add_char">إضافة شخصية أخرى (الحد الأقصى 2)</span>
+                            </button>
+                        </div>
+
+                        <!-- Dynamic list of additional character cards -->
+                        <div id="additional_characters_container" style="display: flex; flex-direction: column; gap: 14px;"></div>
+
+                        <!-- Empty state when no extra characters added -->
+                        <div id="no_extra_characters_notice" style="padding: 12px; text-align: center; color: var(--dp-color-muted); font-size: 12px; background: rgba(255,255,255,0.6); border-radius: 10px; border: 1px dashed #c7d2fe;">
+                            <span data-i18n="msg_no_extra_chars">لم تتم إضافة شخصيات إضافية بعد. اضغط على الزر أعلاه لإضافة شخصية (مثل: الأم، الأب، الجدة، المعلم، صديق).</span>
+                        </div>
+                    </div>
                     <div style="display: flex; justify-content: flex-end;">
                         <button type="button" class="btn-pill-primary" onclick="switchIntakeStep(2)">
                             <span data-i18n="btn_next_goals">التالي: الأهداف والقيم ➔</span>
@@ -2417,23 +2445,44 @@
             const sceneCount = document.getElementById("intake_scene_count")?.value || "5";
             const goal = document.getElementById("intake_values")?.value.trim() || document.getElementById("intake_learning")?.value.trim() || (isAr ? "الاستكشاف والبهجة" : "Exploration");
             
-            let charList = [`${name} [Image 1]`];
-            if (window.parsedStoryModelData && window.parsedStoryModelData.characters && window.parsedStoryModelData.characters.length > 1) {
+            const extraChars = getAdditionalCharactersFromUI();
+            let charPillsHtml = `
+                <div style="display: flex; flex-direction: column; gap: 4px; margin-top: 4px;">
+                    <div style="font-size: 12px; color: #1e1b4b; font-weight: 700;">
+                        🌟 ${escapeHtml(name)} <span style="background: #e0e7ff; color: #4338ca; padding: 1px 6px; border-radius: 999px; font-size: 10px;">[Image 1 - ${isAr ? 'البطل' : 'Hero'}]</span>
+                    </div>
+            `;
+            if (extraChars.length > 0) {
+                extraChars.forEach((ec, i) => {
+                    const freqText = ec.appearance_frequency === 'low' || ec.appearance_frequency === 'قليل' ? (isAr ? 'ظهور قليل' : 'Low') :
+                                     ec.appearance_frequency === 'high' || ec.appearance_frequency === 'كثير' ? (isAr ? 'ظهور كثير' : 'High') : (isAr ? 'ظهور متوسط' : 'Medium');
+                    charPillsHtml += `
+                        <div style="font-size: 11px; color: #374151;">
+                            👤 ${escapeHtml(ec.name)} <span style="background: #f1f5f9; color: #475569; padding: 1px 6px; border-radius: 999px; font-size: 10px;">[Image ${i + 2}]</span>
+                            <span style="color: #6b7280;">(${escapeHtml(ec.relationship)} • ${freqText})</span>
+                        </div>
+                    `;
+                });
+            } else if (window.parsedStoryModelData && window.parsedStoryModelData.characters && window.parsedStoryModelData.characters.length > 1) {
                 const extras = window.parsedStoryModelData.characters.filter(c => c.character_id !== "CHILD_01");
                 extras.forEach((c, i) => {
-                    charList.push(`${c.display_name || c.name} [Image ${i + 2}]`);
+                    charPillsHtml += `
+                        <div style="font-size: 11px; color: #374151;">
+                            👤 ${escapeHtml(c.display_name || c.name)} <span style="background: #f1f5f9; color: #475569; padding: 1px 6px; border-radius: 999px; font-size: 10px;">[Image ${i + 2}]</span>
+                        </div>
+                    `;
                 });
             }
-            const charText = charList.join(", ");
+            charPillsHtml += `</div>`;
 
             const container = document.getElementById("review_summary_content");
             if (!container) return;
 
             container.innerHTML = `
                 <div style="background: #ffffff; padding: 10px 12px; border-radius: 10px; border: 1px solid #e0e7ff; box-shadow: 0 1px 4px rgba(0,0,0,0.03);">
-                    <div style="color: #6b7280; font-size: 11px; font-weight: 700;">${isAr ? "👤 الشخصيات والصور المرجعية" : "👤 Characters & References"}</div>
-                    <div style="font-weight: 700; color: #1e1b4b; margin-top: 3px; font-size: 13px;">${escapeHtml(charText)}</div>
-                    <div style="color: #4b5563; font-size: 11px; margin-top: 2px;">${escapeHtml(age)} ${isAr ? "سنوات" : "years"} • ${escapeHtml(genderLabel)}</div>
+                    <div style="color: #6b7280; font-size: 11px; font-weight: 700;">${isAr ? "👤 شخصيات القصة (حتى 3) والصور المرجعية" : "👤 Story Characters (Up to 3) & References"}</div>
+                    ${charPillsHtml}
+                    <div style="color: #4b5563; font-size: 11px; margin-top: 4px;">${escapeHtml(age)} ${isAr ? "سنوات" : "years"} • ${escapeHtml(genderLabel)}</div>
                 </div>
                 <div style="background: #ffffff; padding: 10px 12px; border-radius: 10px; border: 1px solid #e0e7ff; box-shadow: 0 1px 4px rgba(0,0,0,0.03);">
                     <div style="color: #6b7280; font-size: 11px; font-weight: 700;">${isAr ? "🎯 صفحات القصة والهدف" : "🎯 Story Pages & Goal"}</div>
@@ -2455,6 +2504,129 @@
 
 
         // =====================================================================
+        // =====================================================================
+        // Additional Characters Management (Up to 2 extra characters, max 3 in story)
+        // =====================================================================
+        let extraCharacters = [];
+
+        function addExtraCharacterSlot(presetData) {
+            if (extraCharacters.length >= 2) {
+                alert(currentLang === "ar" ? "الحد الأقصى للشخصيات الإضافية هو شخصيتان فقط (3 شخصيات إجمالاً مع الطفل)." : "Maximum 2 additional characters allowed (3 total with the child).");
+                return;
+            }
+            extraCharacters.push({
+                id: "char_extra_" + Date.now() + "_" + Math.floor(Math.random() * 1000),
+                name: presetData?.name || "",
+                relationship: presetData?.relationship || "الأم",
+                appearance_frequency: presetData?.appearance_frequency || "medium",
+                role: presetData?.role || "",
+                impact: presetData?.impact || ""
+            });
+            renderExtraCharacters();
+        }
+
+        function removeExtraCharacterSlot(index) {
+            extraCharacters.splice(index, 1);
+            renderExtraCharacters();
+        }
+
+        function updateExtraChar(index, field, value) {
+            if (extraCharacters[index]) {
+                extraCharacters[index][field] = value;
+            }
+        }
+
+        function renderExtraCharacters() {
+            const container = document.getElementById("additional_characters_container");
+            const notice = document.getElementById("no_extra_characters_notice");
+            const addBtn = document.getElementById("btn_add_extra_character");
+            if (!container) return;
+
+            const isAr = (currentLang === "ar");
+
+            if (extraCharacters.length === 0) {
+                container.innerHTML = "";
+                if (notice) notice.style.display = "block";
+            } else {
+                if (notice) notice.style.display = "none";
+                container.innerHTML = extraCharacters.map((c, idx) => {
+                    const imgIndex = idx + 2; // Child is Image 1, extra chars are Image 2 & 3
+                    return `
+                        <div class="clay-card" style="padding: 14px; background: #ffffff; border-radius: 12px; border: 1.5px solid #c7d2fe; box-shadow: 0 2px 8px rgba(0,0,0,0.03);">
+                            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; border-bottom: 1px solid #f1f5f9; padding-bottom: 8px;">
+                                <div style="display: flex; align-items: center; gap: 8px;">
+                                    <span class="badge" style="background: #4338ca; color: #ffffff; font-weight: 700; font-size: 11px; padding: 3px 10px; border-radius: 999px;">
+                                        👤 ${isAr ? `الشخصية الإضافية ${idx + 1}` : `Extra Character ${idx + 1}`} • [Image ${imgIndex}]
+                                    </span>
+                                </div>
+                                <button type="button" class="btn-pill-secondary" onclick="removeExtraCharacterSlot(${idx})" style="font-size: 11px; padding: 3px 10px; color: #dc2626; border-color: #fca5a5;">
+                                    ${isAr ? "✕ حذف الشخصية" : "✕ Remove"}
+                                </button>
+                            </div>
+                            <div class="grid-3" style="gap: 10px;">
+                                <div class="form-group" style="margin-bottom: 8px;">
+                                    <label style="font-size: 12px; font-weight: 700;">${isAr ? "اسم الشخصية:" : "Character Name:"}</label>
+                                    <input type="text" class="clay-input" value="${escapeHtml(c.name)}" oninput="updateExtraChar(${idx}, 'name', this.value)" placeholder="${isAr ? 'مثال: المعلمة هدى أو الجدة سلمى' : 'e.g. Teacher Huda or Grandma Salma'}">
+                                </div>
+                                <div class="form-group" style="margin-bottom: 8px;">
+                                    <label style="font-size: 12px; font-weight: 700;">${isAr ? "صلة القرابة في القصة:" : "Kinship / Relationship:"}</label>
+                                    <select class="clay-select" onchange="updateExtraChar(${idx}, 'relationship', this.value)">
+                                        <option value="الأم" ${c.relationship === "الأم" ? "selected" : ""}>الأم (Mother)</option>
+                                        <option value="الأب" ${c.relationship === "الأب" ? "selected" : ""}>الأب (Father)</option>
+                                        <option value="الجدة" ${c.relationship === "الجدة" ? "selected" : ""}>الجدة (Grandmother)</option>
+                                        <option value="الجد" ${c.relationship === "الجد" ? "selected" : ""}>الجد (Grandfather)</option>
+                                        <option value="المعلم / المعلمة" ${c.relationship === "المعلم / المعلمة" || c.relationship?.includes("معلم") ? "selected" : ""}>المعلم / المعلمة (Teacher)</option>
+                                        <option value="الأخ / الأخت" ${c.relationship === "الأخ / الأخت" || c.relationship?.includes("أخ") ? "selected" : ""}>الأخ / الأخت (Sibling)</option>
+                                        <option value="صديق / صديقة" ${c.relationship === "صديق / صديقة" || c.relationship?.includes("صديق") ? "selected" : ""}>صديق / صديقة (Friend)</option>
+                                        <option value="مرشد / مدرب" ${c.relationship === "مرشد / مدرب" ? "selected" : ""}>مرشد / مدرب (Mentor / Coach)</option>
+                                        <option value="أخرى" ${c.relationship === "أخرى" ? "selected" : ""}>أخرى (Other)</option>
+                                    </select>
+                                </div>
+                                <div class="form-group" style="margin-bottom: 8px;">
+                                    <label style="font-size: 12px; font-weight: 700;">${isAr ? "نسبة الظهور في القصة:" : "Appearance Frequency:"}</label>
+                                    <select class="clay-select" onchange="updateExtraChar(${idx}, 'appearance_frequency', this.value)">
+                                        <option value="low" ${c.appearance_frequency === "low" || c.appearance_frequency === "قليل" ? "selected" : ""}>${isAr ? "قليل (مشهد أو مشهدين - Rare)" : "Low (1-2 scenes)"}</option>
+                                        <option value="medium" ${c.appearance_frequency === "medium" || c.appearance_frequency === "متوسط" ? "selected" : ""}>${isAr ? "متوسط (نصف المشاهد تقريباً - Moderate)" : "Medium (~half scenes)"}</option>
+                                        <option value="high" ${c.appearance_frequency === "high" || c.appearance_frequency === "كثير" ? "selected" : ""}>${isAr ? "كثير (أغلب مشاهد القصة - Frequent)" : "High (most scenes)"}</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="grid-2" style="gap: 10px; margin-top: 6px;">
+                                <div class="form-group" style="margin-bottom: 0;">
+                                    <label style="font-size: 11px; color: var(--dp-color-muted);">${isAr ? "دور الشخص في القصة (اختياري):" : "Role in Story (Optional):"}</label>
+                                    <input type="text" class="clay-input" value="${escapeHtml(c.role)}" oninput="updateExtraChar(${idx}, 'role', this.value)" placeholder="${isAr ? 'مثال: خياطة ماهرة، معلم العلوم، صديق يشجع في النادي' : 'e.g. Science teacher, wise grandmother, supportive friend'}">
+                                </div>
+                                <div class="form-group" style="margin-bottom: 0;">
+                                    <label style="font-size: 11px; color: var(--dp-color-muted);">${isAr ? "تأثير الشخص في القصة (اختياري):" : "Impact on Story (Optional):"}</label>
+                                    <input type="text" class="clay-input" value="${escapeHtml(c.impact)}" oninput="updateExtraChar(${idx}, 'impact', this.value)" placeholder="${isAr ? 'مثال: تقديم نصيحة عن الصبر، إهداء كتاب فضاء، المساعدة في فكرة' : 'e.g. Gives inspiring advice, gifts an astronomy book'}">
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                }).join("");
+            }
+
+            if (addBtn) {
+                if (extraCharacters.length >= 2) {
+                    addBtn.disabled = true;
+                    addBtn.innerHTML = `<span>🔒</span> ${isAr ? "الحد الأقصى (3 شخصيات إجمالاً)" : "Max reached (3 total)"}`;
+                } else {
+                    addBtn.disabled = false;
+                    addBtn.innerHTML = `<span>➕</span> ${isAr ? "إضافة شخصية أخرى (الحد الأقصى 2)" : "Add Another Character (Max 2)"}`;
+                }
+            }
+        }
+
+        function getAdditionalCharactersFromUI() {
+            return extraCharacters.filter(c => c.name && c.name.trim()).map(c => ({
+                name: c.name.trim(),
+                relationship: c.relationship || "صديق",
+                appearance_frequency: c.appearance_frequency || "medium",
+                role: c.role ? c.role.trim() : (c.relationship || "مرشد"),
+                impact: c.impact ? c.impact.trim() : ""
+            }));
+        }
+
         // Story Model Outcome Integration & Presets (From Test File)
         // =====================================================================
         window.parsedStoryModelData = null;
@@ -2723,6 +2895,21 @@ Adam smiled a big smile. Adam said, "Yes, please!" He put the cone down and kick
                 document.getElementById("intake_story_text").value = data.story_text;
             }
 
+            // Populate up to 2 extra characters from parsed data
+            extraCharacters = [];
+            const parsedExtras = (data.characters || []).filter(c => c.character_id !== "CHILD_01");
+            parsedExtras.slice(0, 2).forEach(c => {
+                extraCharacters.push({
+                    id: "char_extra_" + Date.now() + "_" + Math.floor(Math.random() * 1000),
+                    name: c.display_name || c.name || "",
+                    relationship: c.relationship || (c.display_name?.includes("الجدة") ? "الجدة" : (c.display_name?.includes("معلم") ? "المعلم / المعلمة" : "صديق / صديقة")),
+                    appearance_frequency: c.appearance_frequency || "medium",
+                    role: c.role || "",
+                    impact: c.impact || ""
+                });
+            });
+            renderExtraCharacters();
+
             // 4. Update Summary Card
             const card = document.getElementById("story_model_parsed_card");
             const langBadge = document.getElementById("parsed_summary_lang");
@@ -2762,6 +2949,15 @@ Adam smiled a big smile. Adam said, "Yes, please!" He put the cone down and kick
 تركض مينا نحو الفراشات والورود بابتسامة تملأ وجهها.
 تجد مينا طائرة ورقية حمراء بين العشب وترفعها عالياً في الهواء.
 تهب الرياح اللطيفة فتطير الطائرة وتضحك مينا بسعادة وتعود إلى منزلها مسرورة.`;
+            extraCharacters = [{
+                id: "char_extra_sample_1",
+                name: "الجدة سلمى",
+                relationship: "الجدة",
+                appearance_frequency: "medium",
+                role: "خياطة ماهرة تحب الطبيعة",
+                impact: "تشجيع مينا على ملاحظة حركة الرياح واستخدام الألوان"
+            }];
+            renderExtraCharacters();
             const msg = (currentLang === "ar") ? "تم ملء بيانات الاستبيان التجريبية بنجاح!" : "Sample profile loaded successfully!";
             alert(msg);
         }
@@ -2794,7 +2990,31 @@ Adam smiled a big smile. Adam said, "Yes, please!" He put the cone down and kick
                 invariants: []
             }];
 
-            if (window.parsedStoryModelData && window.parsedStoryModelData.characters && window.parsedStoryModelData.characters.length > 1) {
+            const uiExtras = getAdditionalCharactersFromUI();
+            if (uiExtras.length > 0) {
+                uiExtras.forEach((ec, idx) => {
+                    const slug = ec.name.toLowerCase().replace(/[^a-z0-9]+/g, '_').replace(/^_+|_+$/g, '') || `support_${idx+1}`;
+                    charactersList.push({
+                        character_id: `CHAR_SUPPORT_${idx+1}`,
+                        display_name: ec.name,
+                        canonical_name_ar: ec.name,
+                        canonical_name_en: slug.charAt(0).toUpperCase() + slug.slice(1),
+                        role: ec.role || ec.relationship || "Supporting Character",
+                        relationship: ec.relationship,
+                        appearance_frequency: ec.appearance_frequency,
+                        story_impact: ec.impact,
+                        apparent_age: "Supporting Character",
+                        gender: "character",
+                        hair_details: "",
+                        skin_tone: "",
+                        canonical_clothing: "",
+                        distinctive_features: ec.relationship ? `صلة القرابة: ${ec.relationship}` : "",
+                        source_photos: [],
+                        canonical_sheet: "",
+                        invariants: []
+                    });
+                });
+            } else if (window.parsedStoryModelData && window.parsedStoryModelData.characters && window.parsedStoryModelData.characters.length > 1) {
                 const extras = window.parsedStoryModelData.characters.filter(c => c.character_id !== "CHILD_01");
                 charactersList = charactersList.concat(extras);
             }
@@ -2828,6 +3048,7 @@ Adam smiled a big smile. Adam said, "Yes, please!" He put the cone down and kick
             try {
                 // Generate the story from intake metadata, then generate one
                 // image prompt set for every generated scene.
+                const extraCharsPayload = getAdditionalCharactersFromUI();
                 const pipelinePayload = {
                     child_name: document.getElementById("intake_child_name").value.trim() || "البطل",
                     child_age: parseInt(document.getElementById("intake_child_age").value, 10) || 6,
@@ -2838,6 +3059,7 @@ Adam smiled a big smile. Adam said, "Yes, please!" He put the cone down and kick
                     story_goal: document.getElementById("intake_values").value.trim() || "تنمية الصبر والمثابرة",
                     story_type: document.getElementById("intake_story_type")?.value || "قصة مغامرة",
                     page_count: parseInt(document.getElementById("intake_scene_count").value, 10) || 5,
+                    additional_characters: extraCharsPayload,
                     preferences: document.getElementById("intake_personality")?.value || "",
                     avoid: [],
                     art_style: "Disney Pixar 3D animated illustration, warm vibrant colors, soft volumetric lighting, expressive stylized characters",
@@ -3850,6 +4072,7 @@ ${story}
         window.onload = () => {
             // Apply saved or default language
             setLanguage(currentLang);
+            renderExtraCharacters();
 
             addCharacterCard({
                 character_id: "MINA_01",

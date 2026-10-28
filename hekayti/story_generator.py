@@ -41,7 +41,13 @@ STORY_PROMPT = """أنت كاتب قصص أطفال مخصص. اكتب قصة أ
     "story_goal": "الهدف من القصة",
     "story_type": "نوع القصة",
     "additional_characters": [
-      {"name": "اسم الشخصية", "role": "علاقتها بالطفل أو دورها"}
+      {
+        "name": "اسم الشخصية",
+        "relationship": "صلة القرابة أو العلاقة بالطفل (مثل: الأم، الأب، الجدة، الجد، المعلم/ة، الأخ، الأخت، صديق/ة)",
+        "appearance_frequency": "نسبة الظهور: قليل (مشهد أو مشهدين)، أو متوسط (حوالي نصف المشاهد)، أو كثير (أغلب مشاهد القصة)",
+        "role": "دور الشخصية في القصة (اختياري)",
+        "impact": "تأثير الشخصية على الطفل والقصة (اختياري)"
+      }
     ]
   },
   "personalization": {
@@ -62,7 +68,14 @@ additional_characters وdedication وpreferences وavoid حقول اختياري
 - اجعل story_type يحدد طبيعة الأحداث فعلًا، مثل مغامرة خيالية أو قصة صداقة أو اكتشاف وتعلّم.
 - ابتكر حبكة أصلية مناسبة لنوع القصة، ولا تكرر قالبًا واحدًا بتغيير الأسماء.
 - أظهر صفات الطفل من خلال أفعاله واختياراته، واجعل له قرارًا واحدًا على الأقل يغير مسار القصة.
-- إذا وُجدت شخصية إضافية، امنحها دورًا مفيدًا ومتسقًا مع دورها المحدد. يمكنها المساعدة أو تقديم فكرة، لكن لا تجعلها تحل المشكلة الأساسية بدلًا من الطفل.
+- يمكن إضافة حتى شخصيتين إضافيتين إلى جانب الطفل (بحد أقصى 3 شخصيات في القصة إجمالاً).
+- إذا وُجدت شخصيات إضافية:
+  * التزم بصلة القرابة (relationship) ودور الشخصية (role) وتأثيرها (impact) في مساعدة الطفل وإلهامه دون أن تسلب الطفل زمام المبادرة والقرار.
+  * التزم بنسبة الظهور (appearance_frequency):
+    - 'قليل' (low): تظهر الشخصية في عدد قليل من المشاهد (مشهد أو مشهدين، كالبداية أو النهاية).
+    - 'متوسط' (medium): تظهر الشخصية في عدد متوسط من المشاهد (حوالي نصف المشاهد).
+    - 'كثير' (high): تظهر الشخصية في أغلب مشاهد القصة مرافقة للبطل.
+  * في كل صفحة من صفحات القصة، أدرج في 'character_reference_ids' فقط معرّفات الشخصيات التي تظهر فعلياً في ذلك المشهد.
 - اجعل هدف القصة ظاهرًا في سلوك أو قرار خلال الأحداث، لا في موعظة في النهاية.
 - تجنب المحاضرات والنجاح الفوري وادعاء أن الطفل تعلم شيئًا دون موقف يثبت ذلك.
 
@@ -317,26 +330,52 @@ def generate_fallback_story(story_input: Dict[str, Any]) -> Dict[str, Any]:
         "distinctive_features": distinctive_main
     }]
 
-    # Additional Characters
+    # Additional Characters (Up to 2 additional characters, max 3 in story total)
+    extra_char_configs = []
     extra_char_ids = []
-    for idx, ac in enumerate(add_chars):
+    for idx, ac in enumerate(add_chars[:2]):
         c_name = ac.get("name", f"Character_{idx+2}")
-        c_role = ac.get("role", "مرشد وصديق")
+        c_rel = ac.get("relationship") or ac.get("role") or ("مرشد وصديق" if "eng" not in lang else "Guide and Friend")
+        c_freq = str(ac.get("appearance_frequency", "medium")).lower()
+        c_role = ac.get("role") or c_rel
+        c_impact = ac.get("impact", "")
         c_id = f"char_support_{idx+1:02d}"
         extra_char_ids.append(c_id)
 
+        # Distribute active appearance pages based on frequency
+        if c_freq in ["قليل", "low", "rare", "few"]:
+            active_pages = {1} if page_count <= 3 else {1, page_count}
+        elif c_freq in ["كثير", "high", "frequent"]:
+            active_pages = {p for p in range(1, page_count + 1) if p != 2} if page_count >= 4 else set(range(1, page_count + 1))
+        else:  # متوسط / medium
+            active_pages = {p for p in range(1, page_count + 1) if p % 2 != 0} or {1, page_count}
+
+        extra_char_configs.append({
+            "id": c_id,
+            "name": c_name,
+            "relationship": c_rel,
+            "frequency": c_freq,
+            "role": c_role,
+            "impact": c_impact,
+            "active_pages": active_pages
+        })
+
         if "eng" in lang:
-            c_app = f"A friendly guide with a warm presence suited to {c_role}."
+            c_app = f"A friendly {c_rel.lower()} with a warm presence suited to {c_role}."
             c_clothe = "Practical comfortable attire with a gentle color palette."
-            c_dist = f"Known for expertise in: {c_role}."
+            c_dist = f"Relationship: {c_rel}. {c_impact or c_role}"
         else:
-            c_app = f"شخصية ودودة وملامح مطمئنة تناسب دور {c_role}."
+            c_app = f"شخصية ودودة وملامح مطمئنة بصفتها {c_rel} وتناسب دور {c_role}."
             c_clothe = "ملابس عملية ومريحة بألوان هادئة."
-            c_dist = f"معروف{'ة' if 'معلمة' in c_name or 'جدة' in c_name else ''} بدور: {c_role}."
+            c_dist = f"صلة القرابة: {c_rel}. {c_impact or c_role}"
 
         character_designs.append({
             "character_id": c_id,
             "name": c_name,
+            "relationship": c_rel,
+            "appearance_frequency": c_freq,
+            "role": c_role,
+            "impact": c_impact,
             "appearance": c_app,
             "clothing": c_clothe,
             "distinctive_features": c_dist
@@ -350,8 +389,9 @@ def generate_fallback_story(story_input: Dict[str, Any]) -> Dict[str, Any]:
         pages = []
         for i in range(1, page_count + 1):
             sc_chars = [char_id_main]
-            if extra_char_ids and i in (1, 2, page_count):
-                sc_chars.append(extra_char_ids[0])
+            for ec in extra_char_configs:
+                if i in ec["active_pages"]:
+                    sc_chars.append(ec["id"])
 
             if i == 1:
                 title_page = "The Spark of Curiosity"
@@ -381,8 +421,9 @@ def generate_fallback_story(story_input: Dict[str, Any]) -> Dict[str, Any]:
         pages = []
         for i in range(1, page_count + 1):
             sc_chars = [char_id_main]
-            if extra_char_ids and i in (1, 2, page_count):
-                sc_chars.append(extra_char_ids[0])
+            for ec in extra_char_configs:
+                if i in ec["active_pages"]:
+                    sc_chars.append(ec["id"])
 
             if i == 1:
                 title_page = "بداية المغامرة"
@@ -413,8 +454,9 @@ def generate_fallback_story(story_input: Dict[str, Any]) -> Dict[str, Any]:
         pages = []
         for i in range(1, page_count + 1):
             sc_chars = [char_id_main]
-            if extra_char_ids and i in (1, 2, page_count):
-                sc_chars.append(extra_char_ids[0])
+            for ec in extra_char_configs:
+                if i in ec["active_pages"]:
+                    sc_chars.append(ec["id"])
 
             if i == 1:
                 title_page = "إشراقة الفكرة"
