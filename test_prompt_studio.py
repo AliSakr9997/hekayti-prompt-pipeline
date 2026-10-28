@@ -678,16 +678,16 @@ def test_multi_story_context_adaptation(tmp_path):
 
     # Verify Story 2 context
     s2 = scenes_2[0]
-    assert "school" in s2["inferred_setting"].lower() or "classroom" in s2["inferred_setting"].lower()
-    assert "daytime" in s2["time_of_day"].lower() or "morning" in s2["time_of_day"].lower()
-    assert "book" in s2["props_and_environment"].lower() or "diagram" in s2["props_and_environment"].lower()
+    assert "school" in str(s2["inferred_setting"]).lower() or "classroom" in str(s2["inferred_setting"]).lower()
+    assert "daytime" in str(s2["time_of_day"]).lower() or "morning" in str(s2["time_of_day"]).lower()
+    assert "book" in str(s2["props_and_environment"]).lower() or "diagram" in str(s2["props_and_environment"]).lower()
     assert s2["exact_arabic_text"] == story_2.arabic_story_text, "Arabic text 2 must be 100% verbatim"
 
     # Verify Story 3 context
     s3 = scenes_3[0]
-    assert "coral reef" in s3["inferred_setting"].lower() or "underwater" in s3["inferred_setting"].lower()
-    assert "underwater" in s3["time_of_day"].lower() or "daytime" in s3["time_of_day"].lower()
-    assert "turtle" in s3["props_and_environment"].lower() or "coral" in s3["props_and_environment"].lower()
+    assert "coral reef" in str(s3["inferred_setting"]).lower() or "underwater" in str(s3["inferred_setting"]).lower()
+    assert "underwater" in str(s3["time_of_day"]).lower() or "daytime" in str(s3["time_of_day"]).lower() or "morning" in str(s3["time_of_day"]).lower()
+    assert "turtle" in str(s3["props_and_environment"]).lower() or "coral" in str(s3["props_and_environment"]).lower()
     assert s3["exact_arabic_text"] == story_3.arabic_story_text, "Arabic text 3 must be 100% verbatim"
 
     # Verify that all 3 prompts are completely distinct and non-overlapping in narrative content

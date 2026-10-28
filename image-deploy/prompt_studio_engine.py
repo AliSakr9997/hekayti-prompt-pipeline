@@ -150,6 +150,10 @@ class StoryInput(BaseModel):
     supports_multiple_refs: bool = Field(default=True)
     supports_editing: bool = Field(default=True)
     characters: List[CharacterProfile] = Field(..., description="Characters in story")
+    prestructured_scenes: Optional[List[Dict[str, Any]]] = Field(
+        default=None,
+        description="Optional pre-structured scenes with page numbers and visual image_descriptions from story model"
+    )
 
 
 class PromptRevisionRequest(BaseModel):
@@ -188,10 +192,15 @@ class AITextGenerator:
         self.text_model_id = os.getenv("TEXT_MODEL_ID", "qwen-plus")
         self.last_mode = "fallback_heuristic"
         self.last_error = "API key not configured" if not self.api_key else None
+        self.is_disabled = False
 
     def _call_llm(self, system_instruction: str, user_prompt: str, temperature: float = 0.5) -> Optional[str]:
         """Calls the live text LLM through model_utils.call_dashscope_chat."""
-        self.api_key = os.getenv("DASHSCOPE_API_KEY") or os.getenv("ALIBABA_API_KEY")
+        if getattr(self, "is_disabled", False):
+            return None
+
+        if not self.api_key:
+            self.api_key = os.getenv("DASHSCOPE_API_KEY") or os.getenv("ALIBABA_API_KEY")
 
         if not self.api_key or self.api_key.startswith("mock_"):
             self.last_mode = "fallback_heuristic"
@@ -219,6 +228,9 @@ class AITextGenerator:
             logger.warning(f"Failed to communicate with LLM API: {err_sanitized}")
             self.last_mode = "fallback_heuristic"
             self.last_error = err_sanitized
+            if "invalid_api_key" in err_msg or "Incorrect API key" in err_msg or "401" in err_msg:
+                self.api_key = None
+                self.is_disabled = True
             return None
 
     # -----------------------------------------------------------------
@@ -422,6 +434,11 @@ Return a valid JSON array of objects with keys:
                     photo_ref = primary_char.source_photos[0] if primary_char and primary_char.source_photos else "photo.jpg"
 
                     for idx, sc in enumerate(parsed):
+                        # Ensure string fields from LLM are normalized to strings
+                        for str_field in ["props_and_environment", "lighting_and_atmosphere", "inferred_setting", "time_of_day", "character_action", "facial_expression", "camera_composition"]:
+                            if isinstance(sc.get(str_field), list):
+                                sc[str_field] = ", ".join(str(x) for x in sc[str_field])
+
                         # Ensure 100% Arabic text verbatim preservation
                         sc["exact_arabic_text"] = scenes[idx]["exact_arabic_text"]
                         sc["scene_id"] = f"SCENE_{idx+1:02d}"
@@ -520,6 +537,10 @@ Return a valid JSON array of objects with keys:
                 expression = "Expressive, curious, and cheerful"
                 props = "Environment details relevant to the story narrative"
                 camera = "Medium balanced storytelling shot"
+
+            # If the story engine supplied a dedicated image_description, prioritize it
+            if sc.get("image_description"):
+                action = f"{char_name}: {sc['image_description']}"
 
             sheet_ref = primary_char.canonical_sheet or f"{char_id.lower()}_character_sheet.png" if primary_char else "sheet.png"
             photo_ref = primary_char.source_photos[0] if primary_char and primary_char.source_photos else "photo.jpg"
@@ -1194,7 +1215,10 @@ class PromptStudioEngine:
         ai_char_bible_data = self.ai.generate_character_bible_ai(story_input.characters, story_input.visual_style)
 
         # 2. Segment Arabic Story Verbatim (Code verification)
-        scenes_data = segment_arabic_story_verbatim(story_input.arabic_story_text, story_input.num_scenes)
+        if story_input.prestructured_scenes:
+            scenes_data = story_input.prestructured_scenes
+        else:
+            scenes_data = segment_arabic_story_verbatim(story_input.arabic_story_text, story_input.num_scenes)
 
         # 3. AI Scene-by-Scene Planning & Creative Prompt Writing
         scene_plans = self.ai.generate_scene_plan_and_prompts_ai(
@@ -1276,6 +1300,10 @@ class PromptStudioEngine:
         return {
             "story_id": story_id,
             "story_dir": str(story_dir),
+            "manifest": manifest,
+            "character_bible": ai_char_bible_data,
+            "scene_prompts": scene_plans,
+            "cover_prompt": ai_cover_data,
             "ai_generated": is_live_ai,
             "generation_mode": generation_mode,
             "model_used": model_used,
@@ -1802,3 +1830,217 @@ class PromptStudioEngine:
     def parse_story_model_outcome(self, raw_text: str) -> Dict[str, Any]:
         """Parses output from stories model into structured image pipeline inputs."""
         return parse_story_model_outcome(raw_text)
+
+    def generate_full_pipeline(self, req: "FullPipelineRequest") -> Dict[str, Any]:
+        """
+        End-to-End Orchestrator:
+        Step 1: Generates story using StoryGenerator (Gemini / DashScope / Fallback).
+        Step 2: Converts story JSON to StoryInput.
+        Step 3: Compiles complete prompt pack (Character Sheet, Scenes, Cover, QA Audit).
+        Step 4: Bundles export ZIP.
+        """
+        import sys
+        repo_root = Path(__file__).resolve().parent.parent
+        if str(repo_root) not in sys.path:
+            sys.path.insert(0, str(repo_root))
+        from hekayti.story_generator import StoryGenerator, make_story_input
+
+        # 1. Generate Story
+        story_input_dict = make_story_input(
+            name=req.child_name,
+            age=req.child_age,
+            language=req.language,
+            interests=req.interests,
+            story_goal=req.story_goal,
+            story_type=req.story_type,
+            page_count=req.page_count,
+            additional_characters=req.additional_characters,
+            dedication=req.dedication,
+            preferences=req.preferences,
+            avoid=req.avoid,
+            gender=req.child_gender
+        )
+
+        gen = StoryGenerator(
+            dashscope_api_key=req.dashscope_api_key
+        )
+        if req.provider_preference == "fallback":
+            self.ai.is_disabled = True
+
+        story_data = gen.generate_story(
+            story_input=story_input_dict,
+            preferred_provider=req.provider_preference
+        )
+
+        # 2. Bridge Story to Prompt Studio StoryInput
+        story_input_obj = story_dict_to_story_input(
+            story_data=story_data,
+            art_style=req.art_style,
+            target_model=req.target_image_model,
+            aspect_ratio=req.aspect_ratio,
+            user_physical_identity=req.physical_identity,
+            user_canonical_wardrobe=req.canonical_wardrobe,
+            intended_age=str(req.child_age),
+            gender=req.child_gender
+        )
+
+        # 3. Generate Complete Prompt Pack
+        pack_result = self.generate_prompt_pack(story_input_obj)
+
+        # 4. Generate Export ZIP
+        story_id = pack_result["story_id"]
+        zip_path = self.create_export_zip(story_id)
+
+        return {
+            "success": True,
+            "story_id": story_id,
+            "story": story_data,
+            "prompt_pack": pack_result,
+            "provider_used": gen.last_provider_used,
+            "zip_download_url": f"/prompt_studio/export_pack/{story_id}"
+        }
+
+
+# =====================================================================
+# Full Pipeline Data Models & Bridge
+# =====================================================================
+
+class FullPipelineRequest(BaseModel):
+    model_config = ConfigDict(protected_namespaces=())
+
+    child_name: str = Field(..., description="Child's name")
+    child_age: int = Field(7, description="Child's age in years")
+    child_gender: str = Field("boy", description="'boy' or 'girl'")
+    language: str = Field("simplified_fusha", description="'simplified_fusha', 'egyptian_arabic', or 'english'")
+    interests: List[str] = Field(default_factory=list, description="Child's hobbies/interests")
+    story_goal: str = Field("تنمية الشجاعة والتجربة والمثابرة", description="Pedagogical goal")
+    story_type: str = Field("مغامرة استكشافية", description="Type of story")
+    page_count: int = Field(6, ge=2, le=15, description="Number of story pages/scenes")
+    additional_characters: List[Dict[str, str]] = Field(default_factory=list, description="Additional characters e.g. [{'name': 'المعلمة هدى', 'role': 'معلمة العلوم'}]")
+    dedication: str = Field("", description="Optional dedication")
+    preferences: str = Field("", description="Optional preferences")
+    avoid: List[str] = Field(default_factory=list, description="Topics to avoid")
+
+    # Image Pipeline Options
+    art_style: str = Field(
+        default="Disney Pixar 3D animated illustration, warm vibrant colors, soft volumetric lighting, expressive stylized characters",
+        description="Target visual illustration style"
+    )
+    target_image_model: str = Field(
+        default="qwen-image-2.0-pro",
+        description="Target image generation model: 'qwen-image-2.0-pro', 'wan2.7-image-pro', etc."
+    )
+    aspect_ratio: str = Field(default="1:1", description="Target aspect ratio")
+
+    # Optional manual avatar / wardrobe overrides
+    physical_identity: Optional[str] = Field(default=None, description="E.g. curly dark-brown hair, warm skin tone, dimple on left cheek")
+    canonical_wardrobe: Optional[str] = Field(default=None, description="E.g. yellow raincoat with cute red boots")
+
+    # Runtime DashScope API Key override
+    dashscope_api_key: Optional[str] = None
+    provider_preference: str = Field(default="dashscope", description="'dashscope' or 'fallback'")
+
+
+def story_dict_to_story_input(
+    story_data: Dict[str, Any],
+    art_style: str = "Disney Pixar 3D animated illustration, warm vibrant colors, soft volumetric lighting, expressive stylized characters",
+    target_model: str = "qwen-image-2.0-pro",
+    aspect_ratio: str = "1:1",
+    user_physical_identity: Optional[str] = None,
+    user_canonical_wardrobe: Optional[str] = None,
+    intended_age: str = "5-7",
+    gender: str = "boy"
+) -> StoryInput:
+    """
+    Transforms the structured story JSON output (produced by Reem's Task 2 model)
+    into a fully typed StoryInput ready for prompt pack compilation.
+    """
+    title = story_data.get("title", "حكاية ممتعة")
+    pages = story_data.get("pages", [])
+    character_designs = story_data.get("character_designs", [])
+
+    arabic_lines = []
+    prestructured_scenes = []
+    for p in pages:
+        p_num = p.get("page", len(arabic_lines) + 1)
+        p_title = p.get("scene_title", f"Scene {p_num}")
+        p_text = p.get("text", "")
+        p_desc = p.get("image_description", "")
+        p_refs = p.get("character_reference_ids", [])
+        
+        arabic_lines.append(f"صفحة {p_num}: {p_title}\n{p_text}")
+        prestructured_scenes.append({
+            "scene_index": p_num,
+            "exact_arabic_text": p_text,
+            "scene_title": p_title,
+            "image_description": p_desc,
+            "character_reference_ids": p_refs
+        })
+
+    arabic_story_text = "\n\n".join(arabic_lines)
+
+    characters: List[CharacterProfile] = []
+    for idx, cd in enumerate(character_designs):
+        c_name = cd.get("name", f"Character_{idx+1}")
+        c_id = cd.get("character_id", f"char_{idx+1}")
+        c_slug = re.sub(r'[^a-zA-Z0-9]+', '_', c_name.lower()).strip('_') or f"char_{idx+1}"
+        
+        appearance = cd.get("appearance", "")
+        clothing = cd.get("clothing", "")
+        dist_features = cd.get("distinctive_features", "")
+
+        if idx == 0:
+            role = "Protagonist"
+            apparent_age = f"{intended_age}-year-old {gender}"
+            hair = user_physical_identity if user_physical_identity else appearance
+            wardrobe = user_canonical_wardrobe if user_canonical_wardrobe else clothing
+            sheet = f"{c_slug}_character_sheet.png"
+            photos = [f"{c_slug}_photo_01.jpg"]
+            invs = [wardrobe, dist_features] if dist_features else [wardrobe]
+        else:
+            role = "Supporting Character"
+            apparent_age = "Supporting Character"
+            hair = appearance
+            wardrobe = clothing
+            sheet = f"{c_slug}_character_sheet.png"
+            photos = []
+            invs = [dist_features] if dist_features else []
+
+        characters.append(CharacterProfile(
+            character_id=c_id,
+            display_name=c_name,
+            canonical_name_ar=c_name,
+            canonical_name_en=c_slug.title(),
+            role=role,
+            apparent_age=apparent_age,
+            gender=gender if idx == 0 else "character",
+            hair_details=hair,
+            skin_tone="Warm radiant skin tone",
+            canonical_clothing=wardrobe,
+            distinctive_features=dist_features,
+            canonical_sheet=sheet,
+            source_photos=photos,
+            invariants=invs
+        ))
+
+    if not characters:
+        characters = [CharacterProfile(
+            character_id="CHILD_01",
+            display_name="بطل القصة",
+            apparent_age=f"{intended_age}-year-old {gender}",
+            canonical_clothing="ملابس الطفل اليومية المميزة",
+            canonical_sheet="child_character_sheet.png",
+            source_photos=["child_photo_01.jpg"]
+        )]
+
+    return StoryInput(
+        title=title,
+        arabic_story_text=arabic_story_text,
+        intended_age=intended_age,
+        num_scenes=len(pages) if pages else 6,
+        visual_style=art_style,
+        target_image_model=target_model,
+        aspect_ratio=aspect_ratio,
+        characters=characters,
+        prestructured_scenes=prestructured_scenes
+    )

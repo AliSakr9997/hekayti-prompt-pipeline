@@ -51,6 +51,8 @@ try:
         CharacterProfile,
         EvaluationRating,
         PromptRevisionRequest,
+        FullPipelineRequest,
+        story_dict_to_story_input,
         validate_inputs_and_find_missing,
         parse_story_model_outcome
     )
@@ -391,6 +393,57 @@ def create_prompt_pack(request: StoryInput):
     except Exception as e:
         logger.error(f"Failed to generate prompt pack: {e}")
         raise HTTPException(status_code=500, detail=f"Prompt pack generation failed: {str(e)}")
+
+@app.post("/prompt_studio/generate_full_pipeline")
+def generate_full_pipeline_endpoint(request: FullPipelineRequest):
+    """
+    Complete End-to-End Pipeline:
+    Ingests user input (child details, story goal/interests, target image model)
+    -> Generates children's story JSON via Gemini/DashScope/Fallback (Reem Task 2)
+    -> Bridges character designs and page visual descriptions into Image Pipeline
+    -> Generates complete Prompt Pack (Character Sheet, Scene Prompts, Cover Prompt, QA Audit)
+    -> Packages downloadable ZIP.
+    """
+    try:
+        result = prompt_studio_engine.generate_full_pipeline(request)
+        return result
+    except Exception as e:
+        logger.error(f"Full pipeline execution failed: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail=f"Full pipeline failed: {str(e)}")
+
+@app.post("/prompt_studio/generate_story_only")
+def generate_story_only_endpoint(request: FullPipelineRequest):
+    """
+    Generates only the structured children's story JSON (Reem Task 2 format).
+    """
+    try:
+        from hekayti.story_generator import StoryGenerator, make_story_input
+        story_input_dict = make_story_input(
+            name=request.child_name,
+            age=request.child_age,
+            language=request.language,
+            interests=request.interests,
+            story_goal=request.story_goal,
+            story_type=request.story_type,
+            page_count=request.page_count,
+            additional_characters=request.additional_characters,
+            dedication=request.dedication,
+            preferences=request.preferences,
+            avoid=request.avoid,
+            gender=request.child_gender
+        )
+        gen = StoryGenerator(
+            dashscope_api_key=request.dashscope_api_key
+        )
+        story_data = gen.generate_story(story_input_dict, preferred_provider=request.provider_preference)
+        return {
+            "success": True,
+            "provider_used": gen.last_provider_used,
+            "story": story_data
+        }
+    except Exception as e:
+        logger.error(f"Story generation failed: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail=f"Story generation failed: {str(e)}")
 
 class StoryOutcomeRequest(BaseModel):
     raw_text: str

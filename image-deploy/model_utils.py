@@ -41,8 +41,8 @@ def call_dashscope_chat(
     temperature: float = 0.5,
     model: str | None = None,
     api_key: str | None = None,
-    max_retries: int = 3,
-    timeout: int = 60
+    max_retries: int = 2,
+    timeout: int = 10
 ) -> str:
     """
     Public LLM chat completion gateway using Alibaba Cloud DashScope API.
@@ -95,9 +95,9 @@ def call_dashscope_chat(
                     continue
 
                 last_error = f"HTTP {response.status_code} from {url}: {detail}"
-                # If authentication failed (401), trying another retry on the same endpoint won't help
+                # If authentication failed (401), invalid key won't work on other attempts or endpoints
                 if response.status_code == 401:
-                    break
+                    raise RuntimeError(f"DashScope chat API failed: {last_error}")
             except Exception as ex:
                 last_error = str(ex)
                 if attempt < max_retries - 1:
