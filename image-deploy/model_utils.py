@@ -98,7 +98,9 @@ def call_dashscope_chat(
                 last_error = f"HTTP {response.status_code} from {url}: {detail}"
                 # If authentication failed (401), invalid key won't work on other attempts or endpoints
                 if response.status_code == 401:
-                    raise RuntimeError(f"DashScope chat API failed: {last_error}")
+                    raise PermissionError(f"DashScope chat API failed: {last_error}")
+            except PermissionError:
+                raise
             except Exception as ex:
                 last_error = str(ex)
                 if attempt < max_retries - 1:

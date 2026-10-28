@@ -135,7 +135,7 @@ class StoryInput(BaseModel):
         default="Disney Pixar 3D animated illustration, warm vibrant colors, soft volumetric lighting, expressive stylized characters",
         description="Global artistic style"
     )
-    aspect_ratio: str = Field(default="1:1", description="Aspect ratio, e.g. '1:1', '16:9', '4:5'")
+    aspect_ratio: str = Field(default="9:16", description="Aspect ratio, e.g. '9:16', '16:9', '1:1'")
     output_format: str = Field(default="High-resolution digital illustration, clean composition", description="Format intent")
     educational_values: Optional[str] = Field(default="", description="Educational / moral takeaways")
     target_image_model: str = Field(
@@ -217,7 +217,7 @@ class AITextGenerator:
                 temperature=temperature,
                 model=self.text_model_id,
                 api_key=self.api_key,
-                timeout=60
+                timeout=12
             )
             self.last_mode = "live_ai"
             self.last_error = None
@@ -389,10 +389,16 @@ For EVERY scene, you must:
 3. Distinguish required story facts from optional artistic embellishments:
    - 'required_story_elements': The essential plot events, characters, and items explicitly stated in the Arabic text.
    - 'creative_embellishments': Visual art-direction choices (lighting mood, background details, dynamic camera angles).
-4. Write a rich, creative, standalone image generation prompt tailored for {target_model}.
-   - Do NOT use rigid robotic boilerplate templates. Author naturally flowing cinematic descriptive text.
-   - Incorporate the visual style ({visual_style}) and character visual identity constraints naturally.
-5. Provide negative prompts and an inspection checklist.
+4. CRITICAL CHARACTER & IDENTITY RULE:
+   - Do NOT describe character faces in the prompt text (NO descriptions of eyes, eye shape, nose, cheeks, mouth, skin tone, or facial geometry).
+   - Instruct the AI model to use the characters' referenced imported images by index order:
+     e.g., 'Character reference mapping: Karim is the first image [Image 1], and Teacher Huda is the second image [Image 2]. Use their referenced imported images for their facial appearance, hair, and identity; strictly do NOT describe or alter their faces.'
+5. CRITICAL UNIFIED PROMPT FORMAT:
+   - Every prompt ('prompt_workflow_a', 'prompt_workflow_b', 'prompt_workflow_c') MUST be ONE unified prompt containing BOTH the positive prompt AND the negative prompt together.
+   - Enforce aspect ratio '{aspect_ratio} vertical' in the prompt.
+   - Append the negative prompt directly at the end of the prompt in the format:
+     '\\nNegative prompt: photorealistic face, photographic skin, pasted head, uncanny valley, distorted facial features, malformed hands, extra fingers, blurry, low quality, watermark, text'
+6. Target model: {target_model}, Visual style: {visual_style}.
 
 Return a valid JSON array of objects with keys:
 - scene_id
@@ -408,9 +414,9 @@ Return a valid JSON array of objects with keys:
 - lighting_and_atmosphere
 - camera_composition
 - continuity_requirements
-- prompt_workflow_a (using character sheet reference)
-- prompt_workflow_b (using original photo reference)
-- prompt_workflow_c (hybrid sheet + photo)
+- prompt_workflow_a (ONE unified prompt: positive prompt with character image index mapping and 9:16 vertical ratio + '\\nNegative prompt: ...')
+- prompt_workflow_b (ONE unified prompt: photo-conditioning variant + '\\nNegative prompt: ...')
+- prompt_workflow_c (ONE unified prompt: hybrid variant + '\\nNegative prompt: ...')
 - negative_prompt
 """
         user_content = json.dumps({
@@ -545,44 +551,48 @@ Return a valid JSON array of objects with keys:
             sheet_ref = primary_char.canonical_sheet if primary_char and primary_char.canonical_sheet else "character_sheet_reference"
             photo_ref = primary_char.source_photos[0] if primary_char and primary_char.source_photos else "reference_image"
 
+            char_ref_mapping = self.build_character_reference_mapping(characters)
+            neg_prompt = (
+                "photorealistic face, photographic skin, pasted photo, uncanny valley, "
+                "distorted facial features, distorted anatomy, blurry, low resolution, "
+                "watermark, signature, ugly, malformed hands, extra fingers, text, typography, speech bubbles"
+            )
+
             prompt_a = (
                 f"{visual_style}. "
                 f"Narrative scene: {action}. "
-                f"Protagonist: {char_name}, a {primary_char.apparent_age if primary_char else 'young boy'}, "
-                f"faithfully preserving stylized facial identity, {char_hair}, and {char_eyes} established in the character sheet reference. "
+                f"{char_ref_mapping} "
                 f"Wearing canonical attire: {char_clothing}. "
-                f"Facial emotion: {expression}. "
+                f"Character emotion: {expression}. "
                 f"Environment: {setting}. {props}. "
                 f"Lighting & Atmosphere: {lighting}. Time of day: {time_of_day}. "
-                f"Cinematic framing: {camera}. High-detail 3D animated digital illustration, cohesive color palette, no text."
+                f"Cinematic framing: {camera}. Aspect ratio: 9:16 vertical. "
+                f"High-detail 3D animated digital illustration, cohesive color palette, no text.\n"
+                f"Negative prompt: {neg_prompt}"
             )
 
             prompt_b = (
                 f"{visual_style}. "
                 f"Scene: {action}. "
-                f"Featuring a stylized 3D animated reimagining of {char_name} based on the attached child photograph. "
-                f"Crucial instruction: Redraw completely as a 3D animated character; do NOT paste, collage, or insert a photorealistic face. "
-                f"Preserve the child's distinctive eye shape, facial expression, and {char_hair}. "
-                f"Attire: {char_clothing}. "
+                f"{char_ref_mapping} "
+                f"Redraw completely as a stylized 3D animated character; do NOT paste or insert a photorealistic face. "
+                f"Attire: {char_clothing}. Emotion: {expression}. "
                 f"Setting: {setting}. {props}. "
-                f"Lighting: {lighting} ({time_of_day}). {camera}. Vibrant, child-friendly storytelling illustration."
+                f"Lighting: {lighting} ({time_of_day}). {camera}. Aspect ratio: 9:16 vertical. "
+                f"Vibrant, child-friendly storytelling illustration.\n"
+                f"Negative prompt: {neg_prompt}"
             )
 
             prompt_c = (
                 f"{visual_style}. "
                 f"Scene: {action}. "
-                f"Character consistency: Recreate {char_name} using the attached character sheet for stylized model proportions and clothing texture, "
-                f"and the reference photo for ground-truth eye and facial features. "
+                f"{char_ref_mapping} "
                 f"Wearing canonical outfit: {char_clothing}. "
                 f"Emotion: {expression}. "
                 f"Setting: {setting}. {props}. "
-                f"Lighting: {lighting} ({time_of_day}). {camera}. Polished animated film still quality."
-            )
-
-            neg_prompt = (
-                "photorealistic, real human photo, photographic sticker, cut and paste, pasted head, collage, "
-                "text, words, letters, Arabic calligraphy, watermark, signature, typography, "
-                "deformed limbs, extra fingers, bad anatomy, distorted eyes, blurry, low resolution, dreary lighting"
+                f"Lighting: {lighting} ({time_of_day}). {camera}. Aspect ratio: 9:16 vertical. "
+                f"Polished animated film still quality.\n"
+                f"Negative prompt: {neg_prompt}"
             )
 
             required_story = f"{action} in {setting}"
@@ -617,19 +627,89 @@ Return a valid JSON array of objects with keys:
 
         return scene_plans
 
-    @staticmethod
-    def _add_reference_context_to_scene_prompts(scene_plans: List[Dict[str, Any]]) -> None:
-        """Make the deferred image-reference contract explicit in every prompt."""
+    @classmethod
+    def build_character_reference_mapping(cls, characters: List[Any]) -> str:
+        """
+        Build explicit reference mapping for all characters in the story.
+        Strictly instructs AI not to describe facial features and to use
+        the attached referenced images by index.
+        e.g. 'Karim is the first image [Image 1], and Teacher Huda is the second image [Image 2].'
+        """
+        if not characters:
+            return (
+                "Character reference mapping: The character corresponds to the first attached image [Image 1]. "
+                "Use the referenced imported image for character facial appearance, hair, and identity; "
+                "strictly do NOT describe character faces in text or alter their faces."
+            )
+
+        ordinals = ["first", "second", "third", "fourth", "fifth", "sixth", "seventh", "eighth"]
+        parts = []
+        for idx, char in enumerate(characters):
+            c_name = getattr(char, "display_name", "") or getattr(char, "name", "") or f"Character {idx+1}"
+            clean_name = c_name.split("/")[-1].strip() if "/" in c_name else c_name.strip()
+            ord_word = ordinals[idx] if idx < len(ordinals) else f"{idx+1}th"
+            parts.append(f"{clean_name} is the {ord_word} image [Image {idx+1}]")
+
+        mapping_str = ", and ".join(parts) if len(parts) == 2 else ", ".join(parts)
+        return (
+            f"Character reference mapping: {mapping_str}. "
+            "Use their referenced imported images for their facial appearance, hair, and identity. "
+            "Strictly do NOT describe character faces in text or alter their faces."
+        )
+
+    @classmethod
+    def _add_reference_context_to_scene_prompts(
+        cls,
+        scene_plans: List[Dict[str, Any]],
+        characters: Optional[List[Any]] = None,
+        aspect_ratio: str = "9:16"
+    ) -> None:
+        """
+        Make the deferred image-reference contract explicit in every prompt:
+        1. Character reference mapping (e.g. Karim is the first image [Image 1], and Teacher is the second image [Image 2]).
+        2. Reference images available instruction.
+        3. 9:16 vertical aspect ratio.
+        4. One unified prompt containing both prompt + negative prompt.
+        """
+        mapping_note = cls.build_character_reference_mapping(characters or [])
         reference_note = (
             "Reference images are available to the image model as attached inputs. "
             "Use them only for identity and visual continuity, then fully redraw the character "
             "as the requested stylized illustration; do not paste or photorealistically copy the photos."
         )
+        neg_default = (
+            "photorealistic face, photographic skin, pasted photo, uncanny valley, "
+            "distorted facial features, distorted anatomy, blurry, low resolution, "
+            "watermark, signature, ugly, malformed hands, extra fingers, text, typography, speech bubbles"
+        )
+        ratio_note = f"Aspect ratio: {aspect_ratio} vertical format."
+
         for scene in scene_plans:
+            neg_to_use = scene.get("negative_prompt") or neg_default
             for field in ("prompt_workflow_a", "prompt_workflow_b", "prompt_workflow_c"):
                 prompt = str(scene.get(field, "")).strip()
-                if prompt and reference_note not in prompt:
-                    scene[field] = f"{prompt} {reference_note}"
+                if not prompt:
+                    continue
+
+                if "Negative prompt:" in prompt:
+                    parts = prompt.split("Negative prompt:", 1)
+                    pos_part = parts[0].strip()
+                    neg_to_use = parts[1].strip() or neg_to_use
+                    prompt = pos_part
+
+                if "is the first image" not in prompt and "Character reference mapping:" not in prompt:
+                    prompt = f"{prompt} {mapping_note}"
+
+                if reference_note not in prompt:
+                    prompt = f"{prompt} {reference_note}"
+
+                if "9:16" not in prompt and "aspect ratio" not in prompt.lower():
+                    prompt = f"{prompt} {ratio_note}"
+
+                # Append negative prompt to make it ONE unified prompt
+                prompt = f"{prompt}\nNegative prompt: {neg_to_use}"
+
+                scene[field] = prompt
 
     # -----------------------------------------------------------------
     # 3. AI Cover Prompt Authoring
@@ -1243,7 +1323,7 @@ class PromptStudioEngine:
             target_model=story_input.target_image_model,
             aspect_ratio=story_input.aspect_ratio
         )
-        self.ai._add_reference_context_to_scene_prompts(scene_plans)
+        self.ai._add_reference_context_to_scene_prompts(scene_plans, characters=story_input.characters, aspect_ratio=story_input.aspect_ratio)
 
         # 4. AI Authors Book Cover Prompt
         ai_cover_data = self.ai.generate_cover_prompt_ai(
@@ -1998,7 +2078,7 @@ class FullPipelineRequest(BaseModel):
         default="qwen-image-2.0-pro",
         description="Target image generation model: 'qwen-image-2.0-pro', 'wan2.7-image-pro', etc."
     )
-    aspect_ratio: str = Field(default="1:1", description="Target aspect ratio")
+    aspect_ratio: str = Field(default="9:16", description="Target aspect ratio (default: 9:16 vertical)")
 
     # Optional manual avatar / wardrobe overrides
     physical_identity: Optional[str] = Field(default=None, description="E.g. curly dark-brown hair, warm skin tone, dimple on left cheek")
@@ -2015,7 +2095,7 @@ def story_dict_to_story_input(
     story_data: Dict[str, Any],
     art_style: str = "Disney Pixar 3D animated illustration, warm vibrant colors, soft volumetric lighting, expressive stylized characters",
     target_model: str = "qwen-image-2.0-pro",
-    aspect_ratio: str = "1:1",
+    aspect_ratio: str = "9:16",
     user_physical_identity: Optional[str] = None,
     user_canonical_wardrobe: Optional[str] = None,
     intended_age: str = "5-7",

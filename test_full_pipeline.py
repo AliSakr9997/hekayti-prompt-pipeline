@@ -228,3 +228,51 @@ def test_full_pipeline_accepts_user_story_text(tmp_path):
     assert len(result["scenes"]) == 2
     assert "".join(scene["content"] for scene in result["scenes"]).replace(" ", "") == supplied_text.replace(" ", "")
     assert all(scene["image_prompt"] for scene in result["scenes"])
+
+
+def test_two_character_reference_mapping_and_unified_prompt(tmp_path):
+    """
+    Verify prompt compilation with 2 characters (e.g. Karim and Teacher):
+    - Characters faces are NOT described textually.
+    - AI is told to use their referenced imported images by index:
+      'Karim is the first image [Image 1], and Teacher is the second image [Image 2]'.
+    - Unified prompt: contains both positive prompt and negative prompt together in one string.
+    - Image aspect ratio is 9:16 vertical.
+    """
+    engine = PromptStudioEngine(output_dir=tmp_path)
+    request = FullPipelineRequest(
+        child_name="كريم / Karim",
+        child_age=6,
+        child_gender="boy",
+        page_count=3,
+        interests=["الفضاء", "النجوم"],
+        story_goal="الاستكشاف والتعلم في المدرسة",
+        story_type="مغامرة مدرسية فضائية",
+        additional_characters=[{"name": "معلمة العلوم / Teacher Huda", "role": "معلمة تشجع كريم"}],
+        provider_preference="fallback",
+    )
+
+    result = engine.generate_full_pipeline(request)
+    assert result["success"] is True
+    scenes = result["scenes"]
+    assert len(scenes) == 3
+
+    for sc in scenes:
+        prompt = sc["image_prompt"]
+        # 1. Unified prompt: prompt + negative in ONE string
+        assert "Negative prompt:" in prompt, "Prompt must include negative prompt as one combined prompt"
+
+        # 2. Characters referenced by index
+        assert "Karim is the first image [Image 1]" in prompt
+        assert "Teacher Huda is the second image [Image 2]" in prompt
+        assert "Use their referenced imported images" in prompt
+
+        # 3. No facial descriptions
+        assert "dark-brown eyes" not in prompt
+        assert "eye shape" not in prompt
+        assert "skin tone" not in prompt
+
+        # 4. 9:16 vertical ratio
+        assert "9:16" in prompt
+        assert "vertical" in prompt.lower()
+

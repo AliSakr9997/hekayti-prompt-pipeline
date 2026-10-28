@@ -1302,8 +1302,8 @@
                     <button type="button" class="wizard-step-pill" onclick="switchIntakeStep(3)">
                         <span data-i18n="step_3_tab"><strong>3</strong> اللغة والتنسيق</span>
                     </button>
-                    <button type="button" class="wizard-step-pill" onclick="switchIntakeStep(5)">
-                        <span data-i18n="step_5_tab"><strong>4</strong> مراجعة وتوليد</span>
+                    <button type="button" class="wizard-step-pill" onclick="switchIntakeStep(4)">
+                        <span data-i18n="step_4_tab"><strong>4</strong> مراجعة وتوليد</span>
                     </button>
                 </div>
 
@@ -1453,15 +1453,32 @@
                         <button type="button" class="btn-pill-secondary" onclick="switchIntakeStep(2)">
                             <span data-i18n="btn_prev">➔ السابق</span>
                         </button>
-                        <button type="button" class="btn-pill-primary" onclick="switchIntakeStep(5)">
+                        <button type="button" class="btn-pill-primary" onclick="switchIntakeStep(4)">
                             <span data-i18n="btn_next_review">التالي: المراجعة والتوليد ➔</span>
                         </button>
                     </div>
                 </div>
 
-                <!-- Step 5: Review & generate -->
-                <div id="intake_step_5" class="wizard-step-pane">
-                    <h3 style="font-size: 17px; margin-bottom: 14px; color: var(--dp-color-ink);" data-i18n="s5_title">5. مراجعة الاستبيان وتوليد حزمة المحثات</h3>
+                <!-- Step 4: Review & generate -->
+                <div id="intake_step_4" class="wizard-step-pane">
+                    <h3 style="font-size: 17px; margin-bottom: 14px; color: var(--dp-color-ink);" data-i18n="s4_title">4. مراجعة الاستبيان وتوليد حزمة المحثات</h3>
+
+                    <!-- Dynamic Review Summary Card -->
+                    <div class="clay-card" id="intake_review_summary_card" style="margin-bottom: 18px; padding: 16px; background: rgba(99, 102, 241, 0.05); border: 1.5px solid rgba(99, 102, 241, 0.25); border-radius: 14px;">
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; flex-wrap: wrap; gap: 8px;">
+                            <strong style="color: #3730a3; font-size: 14px; display: flex; align-items: center; gap: 8px;">
+                                <span style="font-size: 18px;">📋</span>
+                                <span data-i18n="lbl_review_summary">ملخص بيانات القصة والمحثات (Story & Prompt Specifications)</span>
+                            </strong>
+                            <div style="display: flex; gap: 6px; align-items: center;">
+                                <span class="badge" style="background: #4338ca; color: #ffffff; font-weight: 700; font-size: 11px; padding: 4px 10px; border-radius: 999px;">📐 9:16 Vertical</span>
+                                <span class="badge" style="background: #059669; color: #ffffff; font-weight: 700; font-size: 11px; padding: 4px 10px; border-radius: 999px;">✨ Unified Prompt</span>
+                            </div>
+                        </div>
+                        <div id="review_summary_content" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 10px; font-size: 13px; color: #1e1b4b;">
+                            <!-- Populated dynamically by updateReviewSummary() -->
+                        </div>
+                    </div>
                     
                     <div class="lavender-decision-tray" style="margin-bottom: 18px;">
                         <div class="tray-header">
@@ -1488,7 +1505,7 @@
                     </div>
 
                     <div style="display: flex; justify-content: flex-start;">
-                        <button type="button" class="btn-pill-secondary" onclick="switchIntakeStep(4)">
+                        <button type="button" class="btn-pill-secondary" onclick="switchIntakeStep(3)">
                             <span data-i18n="btn_prev">➔ السابق</span>
                         </button>
                     </div>
@@ -1552,7 +1569,8 @@
                             <div class="form-group">
                                 <label for="aspect_ratio" data-i18n="lbl_ratio">نسبة الأبعاد (Aspect Ratio):</label>
                                 <select id="aspect_ratio" class="clay-select">
-                                    <option value="16:9" selected>16:9 (عريض / Widescreen)</option>
+                                    <option value="9:16" selected>9:16 (طولي رأسي / Vertical 9:16 - Recommended)</option>
+                                    <option value="16:9">16:9 (عريض / Widescreen)</option>
                                     <option value="1:1">1:1 (مربع / Square)</option>
                                     <option value="4:5">4:5 (طولي / Portrait Book)</option>
                                 </select>
@@ -1965,7 +1983,7 @@
                 step_1_tab: "<strong>1</strong> عن الطفل",
                 step_2_tab: "<strong>2</strong> الأهداف والقيم",
                 step_3_tab: "<strong>3</strong> اللغة والتنسيق",
-                step_4_tab: "<strong>4</strong> لمسات شخصية",
+                step_4_tab: "<strong>4</strong> مراجعة وتوليد",
                 step_5_tab: "<strong>4</strong> مراجعة وتوليد",
 
                 s1_title: "1. معلومات أساسية عن طفلك",
@@ -2020,7 +2038,9 @@
                 ph_avoid: "مثال: تجنب الظلام أو الوحوش أو أي تفاصيل مخيفة...",
                 btn_next_review: "التالي: المراجعة والتوليد ➔",
 
-                s5_title: "5. مراجعة الاستبيان وتوليد حزمة المحثات",
+                s4_title: "4. مراجعة الاستبيان وتوليد حزمة المحثات",
+                s5_title: "4. مراجعة الاستبيان وتوليد حزمة المحثات",
+                lbl_review_summary: "ملخص بيانات القصة والمحثات (Story & Prompt Specifications)",
                 s5_banner_title: "🚀 التوليد المباشر بنقرة واحدة (One-Click Flow)",
                 s5_banner_desc: "يقوم النظام بترحيل كافة مدخلات الاستبيان مباشرة إلى استوديو المحثات وتوليد الـ 11 وثيقة فورياً دون الحاجة لإعادة الكتابة.",
                 btn_one_click: "✨ توليد حزمة المحثات فوراً",
@@ -2142,7 +2162,7 @@
                 step_1_tab: "<strong>1</strong> About Child",
                 step_2_tab: "<strong>2</strong> Goals & Values",
                 step_3_tab: "<strong>3</strong> Language & Format",
-                step_4_tab: "<strong>4</strong> Personal Touch",
+                step_4_tab: "<strong>4</strong> Review & Generate",
                 step_5_tab: "<strong>4</strong> Review & Generate",
 
                 s1_title: "1. Basic information about your child",
@@ -2197,7 +2217,9 @@
                 ph_avoid: "e.g. Avoid darkness, monsters, or frightening elements...",
                 btn_next_review: "Next: Review & Generate ➔",
 
-                s5_title: "5. Review questionnaire & generate prompt pack",
+                s4_title: "4. Review questionnaire & generate prompt pack",
+                s5_title: "4. Review questionnaire & generate prompt pack",
+                lbl_review_summary: "Story & Prompt Specifications Summary",
                 s5_banner_title: "🚀 Direct 1-Click Generation Flow",
                 s5_banner_desc: "Transfers all questionnaire responses directly into the Prompt Studio engine and generates the 11 artifacts in one click without retyping.",
                 btn_one_click: "✨ Generate Prompt Pack Directly",
@@ -2381,6 +2403,54 @@
             document.querySelectorAll(".wizard-step-pane").forEach((pane, idx) => {
                 pane.classList.toggle("active", idx + 1 === stepNum);
             });
+            if (stepNum === 4) {
+                updateReviewSummary();
+            }
+        }
+
+        function updateReviewSummary() {
+            const name = document.getElementById("intake_child_name")?.value.trim() || "البطل";
+            const age = document.getElementById("intake_child_age")?.value.trim() || "6";
+            const isBoy = document.getElementById("intake_child_gender")?.value === "boy";
+            const isAr = (currentLang === "ar");
+            const genderLabel = isBoy ? (isAr ? "ولد (Boy)" : "Boy") : (isAr ? "بنت (Girl)" : "Girl");
+            const sceneCount = document.getElementById("intake_scene_count")?.value || "5";
+            const goal = document.getElementById("intake_values")?.value.trim() || document.getElementById("intake_learning")?.value.trim() || (isAr ? "الاستكشاف والبهجة" : "Exploration");
+            
+            let charList = [`${name} [Image 1]`];
+            if (window.parsedStoryModelData && window.parsedStoryModelData.characters && window.parsedStoryModelData.characters.length > 1) {
+                const extras = window.parsedStoryModelData.characters.filter(c => c.character_id !== "CHILD_01");
+                extras.forEach((c, i) => {
+                    charList.push(`${c.display_name || c.name} [Image ${i + 2}]`);
+                });
+            }
+            const charText = charList.join(", ");
+
+            const container = document.getElementById("review_summary_content");
+            if (!container) return;
+
+            container.innerHTML = `
+                <div style="background: #ffffff; padding: 10px 12px; border-radius: 10px; border: 1px solid #e0e7ff; box-shadow: 0 1px 4px rgba(0,0,0,0.03);">
+                    <div style="color: #6b7280; font-size: 11px; font-weight: 700;">${isAr ? "👤 الشخصيات والصور المرجعية" : "👤 Characters & References"}</div>
+                    <div style="font-weight: 700; color: #1e1b4b; margin-top: 3px; font-size: 13px;">${escapeHtml(charText)}</div>
+                    <div style="color: #4b5563; font-size: 11px; margin-top: 2px;">${escapeHtml(age)} ${isAr ? "سنوات" : "years"} • ${escapeHtml(genderLabel)}</div>
+                </div>
+                <div style="background: #ffffff; padding: 10px 12px; border-radius: 10px; border: 1px solid #e0e7ff; box-shadow: 0 1px 4px rgba(0,0,0,0.03);">
+                    <div style="color: #6b7280; font-size: 11px; font-weight: 700;">${isAr ? "🎯 صفحات القصة والهدف" : "🎯 Story Pages & Goal"}</div>
+                    <div style="font-weight: 700; color: #1e1b4b; margin-top: 3px; font-size: 13px;">${sceneCount} ${isAr ? "مشاهد مستقلة" : "scenes"}</div>
+                    <div style="color: #4b5563; font-size: 11px; margin-top: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;" title="${escapeHtml(goal)}">${escapeHtml(goal)}</div>
+                </div>
+                <div style="background: #ffffff; padding: 10px 12px; border-radius: 10px; border: 1px solid #e0e7ff; box-shadow: 0 1px 4px rgba(0,0,0,0.03);">
+                    <div style="color: #6b7280; font-size: 11px; font-weight: 700;">${isAr ? "📐 أبعاد الصورة وتنسيق المحث" : "📐 Aspect Ratio & Prompt"}</div>
+                    <div style="font-weight: 700; color: #4338ca; margin-top: 3px; font-size: 13px;">9:16 Vertical (رأسي)</div>
+                    <div style="color: #059669; font-size: 11px; font-weight: 700; margin-top: 2px;">✓ ${isAr ? "محث موحد (Prompt + Negative)" : "Unified Prompt + Negative"}</div>
+                </div>
+                <div style="background: #ffffff; padding: 10px 12px; border-radius: 10px; border: 1px solid #e0e7ff; box-shadow: 0 1px 4px rgba(0,0,0,0.03);">
+                    <div style="color: #6b7280; font-size: 11px; font-weight: 700;">${isAr ? "🔒 قاعدة ملامح الوجه" : "🔒 Facial Identity Lock"}</div>
+                    <div style="font-weight: 700; color: #1e1b4b; margin-top: 3px; font-size: 13px;">${isAr ? "استخدام الصور المرجعية مباشرة" : "Use Referenced Images"}</div>
+                    <div style="color: #6b7280; font-size: 11px; margin-top: 2px;">${isAr ? "دون وصف تفاصيل الوجه نصياً" : "No textual face descriptions"}</div>
+                </div>
+            `;
         }
 
 
@@ -2736,7 +2806,7 @@ Adam smiled a big smile. Adam said, "Yes, please!" He put the cone down and kick
                 intended_age: intendedAge,
                 num_scenes: sceneCount,
                 visual_style: "Disney Pixar 3D animated illustration, warm vibrant colors, soft volumetric lighting, expressive stylized characters",
-                aspect_ratio: "16:9",
+                aspect_ratio: "9:16",
                 target_image_model: "Model-Agnostic / Universal",
                 educational_values: [
                     document.getElementById("intake_learning").value.trim(),
@@ -2772,7 +2842,7 @@ Adam smiled a big smile. Adam said, "Yes, please!" He put the cone down and kick
                     avoid: [],
                     art_style: "Disney Pixar 3D animated illustration, warm vibrant colors, soft volumetric lighting, expressive stylized characters",
                     target_image_model: "Model-Agnostic / Universal",
-                    aspect_ratio: "16:9",
+                    aspect_ratio: "9:16",
                     story_text: document.getElementById("intake_story_text").value.trim() || null,
                     provider_preference: "dashscope"
                 };
@@ -2833,8 +2903,10 @@ ${story}
 
 ## 4. Requirements
 - Keep original Arabic story verbatim across all scenes.
-- Preserve character invariants (face, hairstyle, wardrobe) strictly.
-- Output complete character sheet prompt, scene prompts (Workflows A/B/C), cover prompt, and targeted repair prompts.
+- Target Aspect Ratio: 9:16 vertical format.
+- Unified Prompt: Author one combined prompt string (positive prompt + negative prompt directly included).
+- Character Reference Binding: Map characters strictly to imported reference images by index (e.g. Karim is Image 1, Teacher is Image 2).
+- Do NOT describe character faces textually in the prompt; instruct AI to adopt faces directly from referenced images.
 `;
             const previewEl = document.getElementById("intake_brief_preview");
             previewEl.value = brief;
