@@ -50,7 +50,7 @@ def call_dashscope_chat(
     Used by PromptStudioEngine to author creative prompts, character bibles,
     scene visual analyses, cover prompts, and prompt revisions.
     """
-    effective_key = api_key or os.getenv("DASHSCOPE_API_KEY") or os.getenv("ALIBABA_API_KEY")
+    effective_key = (api_key or os.getenv("DASHSCOPE_API_KEY") or os.getenv("ALIBABA_API_KEY") or "").strip()
     if not effective_key or effective_key.startswith("mock_"):
         raise ValueError("DashScope API Key missing or unconfigured.")
 
@@ -66,6 +66,7 @@ def call_dashscope_chat(
         "Authorization": f"Bearer {effective_key}",
         "Content-Type": "application/json",
     }
+    headers["Authorization"] = "Bearer " + effective_key
     payload = {
         "model": effective_model,
         "messages": messages,

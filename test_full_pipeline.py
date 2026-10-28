@@ -171,6 +171,11 @@ def test_full_pipeline_end_to_end(tmp_path):
     story = result["story"]
     assert story["title"]
     assert len(story["pages"]) == 4
+    assert all(page["image_prompt"] for page in story["pages"])
+    assert all("image_prompts" in page for page in story["pages"])
+    assert len(result["scenes"]) == 4
+    assert all(scene["content"] for scene in result["scenes"])
+    assert all("Reference images are available" in scene["image_prompt"] for scene in result["scenes"])
 
     # Check Prompt Pack structure
     pack = result["prompt_pack"]
@@ -196,3 +201,30 @@ def test_full_pipeline_end_to_end(tmp_path):
     zip_path = tmp_path / f"{result['story_id']}_prompt_pack.zip"
     assert zip_path.exists()
     assert zip_path.stat().st_size > 0
+
+
+def test_full_pipeline_accepts_user_story_text(tmp_path):
+    """A supplied story is preserved and enriched with one prompt per scene."""
+    engine = PromptStudioEngine(output_dir=tmp_path)
+    supplied_text = (
+        "ذهبت مينا إلى الحديقة ورأت فراشة جميلة. "
+        "جلست بهدوء ترسم الزهور وتتعلم أن الصبر يساعدها على ملاحظة التفاصيل."
+    )
+    request = FullPipelineRequest(
+        child_name="مينا",
+        child_age=6,
+        child_gender="girl",
+        page_count=2,
+        interests=["الرسم"],
+        story_text=supplied_text,
+        physical_identity="شعر أسود كيرلي ووجه مستدير",
+        canonical_wardrobe="معطف أصفر وحذاء أحمر",
+        provider_preference="fallback",
+    )
+
+    result = engine.generate_full_pipeline(request)
+
+    assert result["provider_used"] == "user_story_text"
+    assert len(result["scenes"]) == 2
+    assert "".join(scene["content"] for scene in result["scenes"]).replace(" ", "") == supplied_text.replace(" ", "")
+    assert all(scene["image_prompt"] for scene in result["scenes"])
