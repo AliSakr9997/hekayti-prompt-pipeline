@@ -187,8 +187,8 @@ class AITextGenerator:
     or by the deterministic semantic heuristic fallback, guaranteeing transparency.
     """
 
-    def __init__(self):
-        self.api_key = os.getenv("DASHSCOPE_API_KEY") or os.getenv("ALIBABA_API_KEY")
+    def __init__(self, api_key: Optional[str] = None):
+        self.api_key = (api_key or os.getenv("DASHSCOPE_API_KEY") or os.getenv("ALIBABA_API_KEY") or "").strip() or None
         self.text_model_id = os.getenv("TEXT_MODEL_ID", "qwen-plus")
         self.last_mode = "fallback_heuristic"
         self.last_error = "API key not configured" if not self.api_key else None
@@ -430,8 +430,8 @@ Return a valid JSON array of objects with keys:
                 parsed = json.loads(cleaned)
                 if isinstance(parsed, list) and len(parsed) == len(scenes):
                     primary_char = characters[0] if characters else None
-                    sheet_ref = primary_char.canonical_sheet or f"{primary_char.character_id.lower()}_character_sheet.png" if primary_char else "sheet.png"
-                    photo_ref = primary_char.source_photos[0] if primary_char and primary_char.source_photos else "photo.jpg"
+                    sheet_ref = primary_char.canonical_sheet if primary_char and primary_char.canonical_sheet else "character_sheet_reference"
+                    photo_ref = primary_char.source_photos[0] if primary_char and primary_char.source_photos else "reference_image"
 
                     for idx, sc in enumerate(parsed):
                         # Ensure string fields from LLM are normalized to strings
@@ -542,8 +542,8 @@ Return a valid JSON array of objects with keys:
             if sc.get("image_description"):
                 action = f"{char_name}: {sc['image_description']}"
 
-            sheet_ref = primary_char.canonical_sheet or f"{char_id.lower()}_character_sheet.png" if primary_char else "sheet.png"
-            photo_ref = primary_char.source_photos[0] if primary_char and primary_char.source_photos else "photo.jpg"
+            sheet_ref = primary_char.canonical_sheet if primary_char and primary_char.canonical_sheet else "character_sheet_reference"
+            photo_ref = primary_char.source_photos[0] if primary_char and primary_char.source_photos else "reference_image"
 
             prompt_a = (
                 f"{visual_style}. "
@@ -616,6 +616,20 @@ Return a valid JSON array of objects with keys:
             })
 
         return scene_plans
+
+    @staticmethod
+    def _add_reference_context_to_scene_prompts(scene_plans: List[Dict[str, Any]]) -> None:
+        """Make the deferred image-reference contract explicit in every prompt."""
+        reference_note = (
+            "Reference images are available to the image model as attached inputs. "
+            "Use them only for identity and visual continuity, then fully redraw the character "
+            "as the requested stylized illustration; do not paste or photorealistically copy the photos."
+        )
+        for scene in scene_plans:
+            for field in ("prompt_workflow_a", "prompt_workflow_b", "prompt_workflow_c"):
+                prompt = str(scene.get(field, "")).strip()
+                if prompt and reference_note not in prompt:
+                    scene[field] = f"{prompt} {reference_note}"
 
     # -----------------------------------------------------------------
     # 3. AI Cover Prompt Authoring
@@ -1229,6 +1243,7 @@ class PromptStudioEngine:
             target_model=story_input.target_image_model,
             aspect_ratio=story_input.aspect_ratio
         )
+        self.ai._add_reference_context_to_scene_prompts(scene_plans)
 
         # 4. AI Authors Book Cover Prompt
         ai_cover_data = self.ai.generate_cover_prompt_ai(
@@ -1864,28 +1879,80 @@ class PromptStudioEngine:
         gen = StoryGenerator(
             dashscope_api_key=req.dashscope_api_key
         )
+        previous_api_key = self.ai.api_key
+        previous_disabled = self.ai.is_disabled
+        if req.dashscope_api_key:
+            self.ai.api_key = req.dashscope_api_key.strip()
         if req.provider_preference == "fallback":
             self.ai.is_disabled = True
 
-        story_data = gen.generate_story(
-            story_input=story_input_dict,
-            preferred_provider=req.provider_preference
-        )
+        try:
+            if req.story_text and req.story_text.strip():
+                raw_scenes = segment_arabic_story_verbatim(req.story_text, req.page_count)
+                story_data = {
+                    "title": req.story_title or f"قصة {req.child_name}",
+                    "summary": req.story_text.strip(),
+                    "character_designs": [{
+                        "name": req.child_name,
+                        "character_id": "CHILD_01",
+                        "appearance": req.physical_identity or "",
+                        "clothing": req.canonical_wardrobe or "",
+                        "distinctive_features": ""
+                    }],
+                    "pages": [{
+                        "page": scene["scene_index"],
+                        "scene_title": f"المشهد {scene['scene_index']}",
+                        "text": scene["exact_arabic_text"],
+                        "image_description": "",
+                        "character_reference_ids": ["CHILD_01"]
+                    } for scene in raw_scenes]
+                }
+                gen.last_provider_used = "user_story_text"
+            else:
+                story_data = gen.generate_story(
+                    story_input=story_input_dict,
+                    preferred_provider=req.provider_preference
+                )
 
-        # 2. Bridge Story to Prompt Studio StoryInput
-        story_input_obj = story_dict_to_story_input(
-            story_data=story_data,
-            art_style=req.art_style,
-            target_model=req.target_image_model,
-            aspect_ratio=req.aspect_ratio,
-            user_physical_identity=req.physical_identity,
-            user_canonical_wardrobe=req.canonical_wardrobe,
-            intended_age=str(req.child_age),
-            gender=req.child_gender
-        )
+            # 2. Bridge Story to Prompt Studio StoryInput
+            story_input_obj = story_dict_to_story_input(
+                story_data=story_data,
+                art_style=req.art_style,
+                target_model=req.target_image_model,
+                aspect_ratio=req.aspect_ratio,
+                user_physical_identity=req.physical_identity,
+                user_canonical_wardrobe=req.canonical_wardrobe,
+                intended_age=str(req.child_age),
+                gender=req.child_gender
+            )
 
-        # 3. Generate Complete Prompt Pack
-        pack_result = self.generate_prompt_pack(story_input_obj)
+            # 3. Generate Complete Prompt Pack
+            pack_result = self.generate_prompt_pack(story_input_obj)
+        finally:
+            self.ai.api_key = previous_api_key
+            self.ai.is_disabled = previous_disabled
+
+        # Expose one primary image prompt alongside each generated story scene.
+        # The complete Workflow A/B/C prompt set remains available in prompt_pack.
+        scene_prompts = pack_result.get("scene_prompts", [])
+        generated_scenes = []
+        for page, scene in zip(story_data.get("pages", []), scene_prompts):
+            page["image_prompt"] = scene.get("prompt_workflow_a", "")
+            page["image_prompts"] = {
+                "character_sheet_reference": scene.get("prompt_workflow_a", ""),
+                "original_photo_reference": scene.get("prompt_workflow_b", ""),
+                "hybrid_references": scene.get("prompt_workflow_c", ""),
+            }
+            generated_scenes.append({
+                "scene_id": scene.get("scene_id"),
+                "page_number": page.get("page"),
+                "title": page.get("scene_title", ""),
+                "content": page.get("text", ""),
+                "image_prompt": page["image_prompt"],
+                "image_prompts": page["image_prompts"],
+                "reference_attachments": scene.get("reference_attachments", {}),
+            })
+        story_data["scenes"] = generated_scenes
 
         # 4. Generate Export ZIP
         story_id = pack_result["story_id"]
@@ -1895,6 +1962,7 @@ class PromptStudioEngine:
             "success": True,
             "story_id": story_id,
             "story": story_data,
+            "scenes": generated_scenes,
             "prompt_pack": pack_result,
             "provider_used": gen.last_provider_used,
             "zip_download_url": f"/prompt_studio/export_pack/{story_id}"
@@ -1939,6 +2007,8 @@ class FullPipelineRequest(BaseModel):
     # Runtime DashScope API Key override
     dashscope_api_key: Optional[str] = None
     provider_preference: str = Field(default="dashscope", description="'dashscope' or 'fallback'")
+    story_title: Optional[str] = Field(default=None, description="Optional title when supplying story_text")
+    story_text: Optional[str] = Field(default=None, description="Optional existing story text to segment instead of authoring a new story")
 
 
 def story_dict_to_story_input(
@@ -1995,14 +2065,14 @@ def story_dict_to_story_input(
             hair = user_physical_identity if user_physical_identity else appearance
             wardrobe = user_canonical_wardrobe if user_canonical_wardrobe else clothing
             sheet = f"{c_slug}_character_sheet.png"
-            photos = [f"{c_slug}_photo_01.jpg"]
+            photos = []
             invs = [wardrobe, dist_features] if dist_features else [wardrobe]
         else:
             role = "Supporting Character"
             apparent_age = "Supporting Character"
             hair = appearance
             wardrobe = clothing
-            sheet = f"{c_slug}_character_sheet.png"
+            sheet = ""
             photos = []
             invs = [dist_features] if dist_features else []
 
