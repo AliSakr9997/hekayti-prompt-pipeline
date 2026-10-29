@@ -344,3 +344,56 @@ def test_three_characters_up_to_limit_with_frequency_and_kinship(tmp_path):
         assert "Karim is the first image [Image 1]" in prompt
 
 
+
+
+def test_library_sync_metadata_and_delete(tmp_path):
+    from prompt_studio_engine import PromptStudioEngine, StoryInput, CharacterProfile
+    engine = PromptStudioEngine(output_dir=tmp_path)
+    
+    # 1. Create a pack
+    story_input = StoryInput(
+        story_id="test_sync_pack_01",
+        title="قصة اختبار المزامنة",
+        arabic_story_text="كان يا ما كان في قديم الزمان طفل شجاع يحب المغامرة في الفضاء الواسع.",
+        characters=[
+            CharacterProfile(
+                character_id="CHILD_01",
+                display_name="كريم",
+                age=7,
+                gender="boy"
+            )
+        ],
+        visual_style="Disney Pixar 3D",
+        target_image_model="qwen-image-2.0-pro",
+        aspect_ratio="9:16",
+        num_scenes=2
+    )
+    pack = engine.generate_prompt_pack(story_input)
+    assert pack["story_id"] == "test_sync_pack_01"
+
+    # 2. List packs
+    packs = engine.list_packs()
+    assert len(packs) == 1
+    p0 = packs[0]
+    assert p0["story_id"] == "test_sync_pack_01"
+    assert p0["title"] == "قصة اختبار المزامنة"
+    assert p0["created_at"] is not None
+    assert isinstance(p0["created_at"], (int, float))
+    assert p0["files_count"] >= 10
+    assert p0["num_scenes"] == 2
+    assert p0["characters"] == ["كريم"]
+
+    # 3. Get pack
+    pack_details = engine.get_pack("test_sync_pack_01")
+    assert pack_details is not None
+    assert pack_details["title"] == "قصة اختبار المزامنة"
+    assert "story_input" in pack_details
+    assert "scene_plans" in pack_details
+    assert "manifest" in pack_details
+    assert "character_bible.md" in pack_details["files"]
+
+    # 4. Delete pack
+    deleted = engine.delete_pack("test_sync_pack_01")
+    assert deleted is True
+    assert len(engine.list_packs()) == 0
+    assert engine.get_pack("test_sync_pack_01") is None

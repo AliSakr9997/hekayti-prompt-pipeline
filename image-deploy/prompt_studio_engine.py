@@ -16,6 +16,7 @@ Architectural Principles:
 """
 
 import os
+import time
 import re
 import ast
 import json
@@ -1406,6 +1407,7 @@ class PromptStudioEngine:
         manifest = {
             "story_id": story_id,
             "title": story_input.title,
+            "created_at": time.time(),
             "ai_generated": is_live_ai,
             "generation_mode": generation_mode,
             "model_used": model_used,
@@ -1917,15 +1919,45 @@ class PromptStudioEngine:
                 try:
                     with open(item / "story_input.json", "r", encoding="utf-8") as f:
                         data = json.load(f)
+                    manifest = {}
+                    if (item / "manifest.json").exists():
+                        try:
+                            with open(item / "manifest.json", "r", encoding="utf-8") as mf:
+                                manifest = json.load(mf)
+                        except Exception:
+                            pass
+                    
+                    num_scenes = data.get("num_scenes", 0)
+                    if not num_scenes and (item / "scene_plan.json").exists():
+                        try:
+                            with open(item / "scene_plan.json", "r", encoding="utf-8") as sf:
+                                sc_data = json.load(sf)
+                                num_scenes = len(sc_data)
+                        except Exception:
+                            pass
+
+                    files_count = len([f for f in item.iterdir() if f.is_file()])
+                    created_at = manifest.get("created_at") or item.stat().st_mtime
+
                     packs.append({
                         "story_id": item.name,
-                        "title": data.get("title", item.name),
-                        "characters": [c.get("display_name") for c in data.get("characters", [])],
-                        "num_scenes": data.get("num_scenes", 0),
-                        "target_model": data.get("target_image_model", "Unknown")
+                        "title": data.get("title") or manifest.get("title") or item.name,
+                        "characters": [c.get("display_name") or c.get("name") for c in data.get("characters", [])],
+                        "num_scenes": num_scenes,
+                        "target_model": data.get("target_image_model") or manifest.get("target_model") or "qwen-image-2.0-pro",
+                        "visual_style": data.get("visual_style") or "",
+                        "aspect_ratio": data.get("aspect_ratio") or "9:16",
+                        "created_at": created_at,
+                        "files_count": files_count,
+                        "ai_generated": manifest.get("ai_generated", False),
+                        "generation_mode": manifest.get("generation_mode", "fallback_heuristic"),
+                        "model_used": manifest.get("model_used", ""),
+                        "audit_passed": manifest.get("audit_passed", True),
+                        "zip_exists": (self.output_dir / f"{item.name}_prompt_pack.zip").exists()
                     })
                 except Exception:
                     continue
+        packs.sort(key=lambda x: x.get("created_at", 0), reverse=True)
         return packs
 
     def get_pack(self, story_id: str) -> Optional[Dict[str, Any]]:
@@ -1940,7 +1972,40 @@ class PromptStudioEngine:
                         result["files"][file.name] = f.read()
                 except Exception:
                     continue
+        
+        # Parse structured components for instant client-side rendering
+        if "manifest.json" in result["files"]:
+            try:
+                result["manifest"] = json.loads(result["files"]["manifest.json"])
+            except Exception:
+                pass
+        if "story_input.json" in result["files"]:
+            try:
+                result["story_input"] = json.loads(result["files"]["story_input.json"])
+            except Exception:
+                pass
+        if "scene_plan.json" in result["files"]:
+            try:
+                result["scene_plans"] = json.loads(result["files"]["scene_plan.json"])
+            except Exception:
+                pass
+        result["created_at"] = story_dir.stat().st_mtime
+        result["title"] = (result.get("story_input") or {}).get("title") or (result.get("manifest") or {}).get("title") or story_id
         return result
+
+    def delete_pack(self, story_id: str) -> bool:
+        story_dir = self.output_dir / story_id
+        if not story_dir.exists() or not story_dir.is_dir():
+            return False
+        import shutil
+        shutil.rmtree(story_dir, ignore_errors=True)
+        zip_path = self.output_dir / f"{story_id}_prompt_pack.zip"
+        if zip_path.exists():
+            try:
+                zip_path.unlink(missing_ok=True)
+            except Exception:
+                pass
+        return True
 
     def save_evaluation(self, story_id: str, eval_data: Dict[str, Any]) -> bool:
         story_dir = self.output_dir / story_id

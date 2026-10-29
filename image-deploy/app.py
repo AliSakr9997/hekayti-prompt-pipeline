@@ -134,10 +134,24 @@ def api_experiments():
             summary_path = run_dir / "summary.json"
             if summary_path.is_file():
                 try:
-                    runs.append(json.loads(summary_path.read_text(encoding="utf-8")))
+                    run_data = json.loads(summary_path.read_text(encoding="utf-8"))
+                    run_data["created_at"] = run_dir.stat().st_mtime
+                    run_data["run_dir"] = run_dir.name
+                    runs.append(run_data)
                 except Exception:
                     pass
     return {"runs": runs}
+
+@app.delete("/api/experiments/{run_id}")
+def delete_experiment(run_id: str):
+    if not demo_server:
+        raise HTTPException(status_code=503, detail="demo_server unavailable")
+    run_dir = demo_server.EXPERIMENTS / run_id
+    if not run_dir.exists() or not run_dir.is_dir():
+        raise HTTPException(status_code=404, detail=f"Experiment run '{run_id}' not found")
+    import shutil
+    shutil.rmtree(run_dir, ignore_errors=True)
+    return {"success": True, "run_id": run_id}
 
 @app.get("/api/quota")
 def api_quota():
@@ -492,6 +506,14 @@ def get_prompt_pack(story_id: str):
     if not pack:
         raise HTTPException(status_code=404, detail="Prompt pack not found")
     return pack
+
+@app.delete("/prompt_studio/pack/{story_id}")
+def delete_prompt_pack(story_id: str):
+    """Deletes a saved prompt pack and its export ZIP archive."""
+    success = prompt_studio_engine.delete_pack(story_id)
+    if not success:
+        raise HTTPException(status_code=404, detail=f"Story pack '{story_id}' not found")
+    return {"success": True, "story_id": story_id}
 
 @app.post("/prompt_studio/save_evaluation")
 def save_prompt_evaluation(eval_req: EvaluationRating):
